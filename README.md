@@ -13,21 +13,58 @@ Sistema web desenvolvido em **Python Flask** com **Tailwind CSS** para gerenciam
 
 ## 🚀 Como Executar
 
-### 1. Instalar Dependências
+### 1. Pré-requisitos
+
+- Python 3.8+
+- MySQL Server 8.0+
+- pip (gerenciador de pacotes Python)
+
+### 2. Configuração do Banco de Dados
+
+1. **Instale e configure o MySQL Server**
+2. **Crie um arquivo `.env`** baseado no `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+3. **Edite o arquivo `.env`** com suas credenciais do MySQL:
+   ```env
+   MYSQL_HOST=localhost
+   MYSQL_PORT=3306
+   MYSQL_USER=root
+   MYSQL_PASSWORD=sua_senha_aqui
+   MYSQL_DATABASE=meetcall_system
+   ```
+
+### 3. Instalar Dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Executar o Sistema
+### 4. Inicializar o Banco de Dados
+
+```bash
+python init_database.py
+```
+
+Este script irá:
+- Criar o banco de dados `meetcall_system`
+- Criar a tabela `users`
+- Inserir usuários padrão para teste
+
+### 5. Executar o Sistema
 
 ```bash
 python app.py
 ```
 
-### 3. Acessar no Navegador
+### 6. Acessar no Navegador
 
 Abra: `http://localhost:5000`
+
+### 7. Testar Conexão com Banco (Opcional)
+
+Acesse: `http://localhost:5000/test-db`
 
 ## 🔑 Credenciais de Teste
 
@@ -45,7 +82,11 @@ Abra: `http://localhost:5000`
 meetcall-system/
 │
 ├── app.py                      # Aplicação Flask principal
+├── config.py                   # Configurações do sistema
+├── database.py                 # Gerenciador do banco MySQL
+├── init_database.py           # Script para inicializar o banco
 ├── requirements.txt            # Dependências Python
+├── .env.example               # Exemplo de configuração
 ├── README.md                   # Este arquivo
 │
 ├── templates/                  # Templates HTML
@@ -74,16 +115,21 @@ meetcall-system/
 ## 🛠️ Tecnologias Utilizadas
 
 - **Backend:** Python 3.x + Flask
+- **Banco de Dados:** MySQL 8.0+
 - **Frontend:** HTML5 + Tailwind CSS
 - **Gráficos:** Chart.js
 - **Ícones:** Font Awesome
-- **Autenticação:** Flask Sessions
+- **Autenticação:** Flask Sessions + bcrypt
+- **Configuração:** python-dotenv
 
 ## 📋 Funcionalidades
 
 ### ✅ Implementadas
 
 - [x] Sistema de login com autenticação
+- [x] **Integração com banco MySQL**
+- [x] **Hash seguro de senhas (bcrypt)**
+- [x] **Configuração por variáveis de ambiente**
 - [x] Dashboard com cards de indicadores
 - [x] Gráficos interativos (barras e pizza)
 - [x] Tabela de chamadas recentes
@@ -94,7 +140,6 @@ meetcall-system/
 
 ### 🔄 Próximas Implementações
 
-- [ ] Integração com banco de dados (SQLite/PostgreSQL)
 - [ ] CRUD completo de clientes
 - [ ] Sistema de relatórios em PDF
 - [ ] API REST
@@ -102,18 +147,28 @@ meetcall-system/
 - [ ] Exportação de dados (Excel/CSV)
 - [ ] Notificações em tempo real
 - [ ] Modo escuro
+- [ ] Recuperação de senha
+- [ ] Logs de auditoria
 
 ## 🔒 Segurança
 
-⚠️ **IMPORTANTE:** Este é um projeto de demonstração. Para produção:
+✅ **Implementações de Segurança:**
 
-1. Altere a `SECRET_KEY` em `app.py`
-2. Use um banco de dados real (não dicionários em memória)
-3. Implemente hash de senhas (bcrypt)
-4. Configure HTTPS
-5. Adicione validação de formulários
-6. Implemente proteção CSRF
-7. Use variáveis de ambiente para configurações sensíveis
+1. ✅ Hash seguro de senhas com bcrypt
+2. ✅ Banco de dados MySQL (não mais dicionários em memória)
+3. ✅ Variáveis de ambiente para configurações sensíveis
+4. ✅ Context managers para conexões seguras com banco
+5. ✅ Validação de usuários ativos
+
+⚠️ **Para Produção, implemente também:**
+
+1. Configure HTTPS/SSL
+2. Adicione validação rigorosa de formulários
+3. Implemente proteção CSRF
+4. Configure firewall do banco de dados
+5. Adicione rate limiting
+6. Implemente logs de auditoria
+7. Use SECRET_KEY mais robusta
 
 ## 📱 Screenshots
 

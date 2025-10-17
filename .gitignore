@@ -82,5 +82,13 @@ Thumbs.db
 *.log
 
 # Secret keys
-config.py
 secrets.py
+
+# Certificados e chaves
+*.pem
+*.key
+*.crt
+
+# Arquivos de configuração locais específicos
+.env.local
+.env.production

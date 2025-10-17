@@ -2,15 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from functools import wraps
 from datetime import datetime
 import os
+from config import Config
+from database import db
 
+# Inicializar Flask com configurações
+config = Config()
 app = Flask(__name__)
-app.secret_key = 'meetcall-secret-key-2025'  # Altere para uma chave segura em produção
-
-# Simulação de banco de dados de usuários (use um banco real em produção)
-USERS = {
-    'admin@meetcall.com': {'password': 'admin123', 'name': 'Administrador'},
-    'usuario@meetcall.com': {'password': 'user123', 'name': 'Usuário Teste'}
-}
+app.secret_key = config.SECRET_KEY
 
 # Decorator para rotas protegidas
 def login_required(f):
@@ -37,13 +35,21 @@ def login():
         email = request.form.get('email')
         password = request.form.get('password')
         
-        if email in USERS and USERS[email]['password'] == password:
-            session['user'] = email
-            session['name'] = USERS[email]['name']
-            flash(f'Bem-vindo(a), {USERS[email]["name"]}!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Email ou senha inválidos.', 'error')
+        try:
+            user = db.authenticate_user(email, password)
+            
+            if user:
+                session['user'] = user['email']
+                session['user_id'] = user['id']
+                session['name'] = user['name']
+                flash(f'Bem-vindo(a), {user["name"]}!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Email ou senha inválidos.', 'error')
+                
+        except Exception as e:
+            flash('Erro interno do servidor. Tente novamente.', 'error')
+            print(f"Erro na autenticação: {e}")
     
     return render_template('login.html')
 
@@ -89,6 +95,26 @@ def logout():
     session.clear()
     flash(f'Até logo, {name}!', 'info')
     return redirect(url_for('login'))
+
+# Função para verificar se o banco está configurado corretamente
+def check_database_connection():
+    """Verifica se a conexão com o banco de dados está funcionando"""
+    try:
+        with db.get_connection() as connection:
+            cursor = connection.cursor()
+            cursor.execute("SELECT 1")
+            return True
+    except Exception as e:
+        print(f"Erro de conexão com o banco: {e}")
+        return False
+
+# Rota para testar conexão com banco (remover em produção)
+@app.route('/test-db')
+def test_database():
+    if check_database_connection():
+        return "✅ Conexão com banco de dados OK!"
+    else:
+        return "❌ Falha na conexão com banco de dados!", 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
