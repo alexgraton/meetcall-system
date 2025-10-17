@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil - Meet Call{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 fade-in">
+        <h1 class="text-3xl font-bold text-gray-900">
+            <i class="fas fa-user text-meetcall-purple mr-3"></i>Meu Perfil
+        </h1>
+        <p class="mt-2 text-sm text-gray-600">Gerencie suas informações pessoais</p>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+        <!-- Header do Perfil -->
+        <div class="bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark p-6">
+            <div class="flex items-center">
+                <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mr-6">
+                    <i class="fas fa-user-circle text-6xl text-meetcall-purple"></i>
+                </div>
+                <div class="text-white">
+                    <h2 class="text-2xl font-bold">{{ session.name }}</h2>
+                    <p class="text-sm opacity-90">{{ session.user }}</p>
+                    <button class="mt-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-1 rounded-lg text-sm transition">
+                        <i class="fas fa-camera mr-2"></i>Alterar Foto
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Formulário de Perfil -->
+        <div class="p-6">
+            <form class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user mr-2 text-meetcall-purple"></i>Nome Completo
+                        </label>
+                        <input type="text" value="{{ session.name }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2 text-meetcall-purple"></i>Email
+                        </label>
+                        <input type="email" value="{{ session.user }}" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2 text-meetcall-purple"></i>Telefone
+                        </label>
+                        <input type="tel" placeholder="(00) 00000-0000" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-briefcase mr-2 text-meetcall-purple"></i>Cargo
+                        </label>
+                        <input type="text" placeholder="Ex: Gerente" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-info-circle mr-2 text-meetcall-purple"></i>Sobre Mim
+                    </label>
+                    <textarea rows="4" placeholder="Conte um pouco sobre você..." class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-4">
+                    <button type="button" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark text-white rounded-lg hover:from-meetcall-purple-dark hover:to-meetcall-purple transition">
+                        <i class="fas fa-save mr-2"></i>Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

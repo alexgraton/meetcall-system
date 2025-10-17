@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Meet Call - Sistema{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Configuração customizada do Tailwind com cores da Meet Call -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'meetcall-purple': '#6B46C1',
+                        'meetcall-purple-dark': '#553C9A',
+                        'meetcall-orange': '#FF7A3D',
+                        'meetcall-orange-dark': '#E66A31',
+                        'meetcall-pink': '#C794C7',
+                        'meetcall-blue': '#2C3E7C',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Animações customizadas */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-50">
+    {% if session.user %}
+    <!-- Navbar -->
+    <nav class="bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <!-- Logo -->
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-2xl font-bold text-white">Meet <span class="text-meetcall-orange">Call</span></span>
+                    </div>
+                    
+                    <!-- Menu Principal -->
+                    <div class="hidden md:ml-10 md:flex md:space-x-4">
+                        <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition">
+                            <i class="fas fa-chart-line mr-2"></i>Dashboard
+                        </a>
+                        <a href="{{ url_for('cadastros') }}" class="{% if request.endpoint == 'cadastros' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition">
+                            <i class="fas fa-users mr-2"></i>Cadastros
+                        </a>
+                        <a href="{{ url_for('configuracoes') }}" class="{% if request.endpoint == 'configuracoes' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition">
+                            <i class="fas fa-cog mr-2"></i>Configurações
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Menu Usuário -->
+                <div class="flex items-center">
+                    <div class="ml-3 relative group">
+                        <button class="flex text-sm rounded-full text-white hover:text-meetcall-orange transition">
+                            <i class="fas fa-user-circle text-2xl mr-2"></i>
+                            <span class="hidden md:block">{{ session.name }}</span>
+                            <i class="fas fa-chevron-down ml-2 text-xs mt-1"></i>
+                        </button>
+                        
+                        <!-- Dropdown Menu -->
+                        <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                            <a href="{{ url_for('perfil') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                <i class="fas fa-user mr-2"></i>Meu Perfil
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Sair
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Menu Mobile -->
+        <div class="md:hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="{{ url_for('dashboard') }}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-meetcall-purple-dark">
+                    <i class="fas fa-chart-line mr-2"></i>Dashboard
+                </a>
+                <a href="{{ url_for('cadastros') }}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-meetcall-purple-dark">
+                    <i class="fas fa-users mr-2"></i>Cadastros
+                </a>
+                <a href="{{ url_for('configuracoes') }}" class="text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-meetcall-purple-dark">
+                    <i class="fas fa-cog mr-2"></i>Configurações
+                </a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+                {% for category, message in messages %}
+                    <div class="fade-in rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 border-l-4 border-red-500{% elif category == 'success' %}bg-green-50 border-l-4 border-green-500{% elif category == 'warning' %}bg-yellow-50 border-l-4 border-yellow-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %}">
+                        <div class="flex items-center">
+                            <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-500{% elif category == 'success' %}fa-check-circle text-green-500{% elif category == 'warning' %}fa-exclamation-triangle text-yellow-500{% else %}fa-info-circle text-blue-500{% endif %} mr-3"></i>
+                            <p class="text-sm {% if category == 'error' %}text-red-800{% elif category == 'success' %}text-green-800{% elif category == 'warning' %}text-yellow-800{% else %}text-blue-800{% endif %}">{{ message }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Conteúdo Principal -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    {% if session.user %}
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <p class="text-center text-gray-500 text-sm">
+                © 2025 <span class="text-meetcall-purple font-semibold">Meet Call</span>. Todos os direitos reservados.
+            </p>
+        </div>
+    </footer>
+    {% endif %}
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

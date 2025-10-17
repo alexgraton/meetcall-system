@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Meet Call - Login{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-meetcall-purple via-meetcall-purple-dark to-meetcall-blue py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 fade-in">
+        <!-- Card de Login -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <!-- Logo e Título -->
+            <div class="text-center mb-8">
+                <!-- Logo com círculos decorativos -->
+                <div class="flex justify-center mb-4">
+                    <div class="relative">
+                        <!-- Círculos decorativos -->
+                        <div class="absolute -top-2 -left-2 w-20 h-20 flex items-center justify-center">
+                            <div class="absolute w-3 h-3 bg-meetcall-orange rounded-full animate-pulse" style="top: 0; left: 10px;"></div>
+                            <div class="absolute w-2 h-2 bg-meetcall-pink rounded-full animate-pulse" style="top: 5px; left: 0;"></div>
+                            <div class="absolute w-2 h-2 bg-meetcall-blue rounded-full animate-pulse" style="top: 10px; left: 15px;"></div>
+                            <div class="absolute w-4 h-4 bg-meetcall-orange rounded-full animate-pulse" style="top: 15px; left: 5px;"></div>
+                        </div>
+                        
+                        <!-- Logo Text -->
+                        <h1 class="text-5xl font-bold">
+                            <span class="text-meetcall-purple">Meet</span>
+                            <span class="text-meetcall-orange">Call</span>
+                        </h1>
+                        
+                        <!-- Círculos decorativos direita -->
+                        <div class="absolute -bottom-2 -right-2 w-20 h-20 flex items-center justify-center">
+                            <div class="absolute w-3 h-3 bg-meetcall-orange rounded-full animate-pulse" style="bottom: 0; right: 10px;"></div>
+                            <div class="absolute w-2 h-2 bg-meetcall-pink rounded-full animate-pulse" style="bottom: 5px; right: 0;"></div>
+                            <div class="absolute w-2 h-2 bg-meetcall-blue rounded-full animate-pulse" style="bottom: 10px; right: 15px;"></div>
+                            <div class="absolute w-4 h-4 bg-meetcall-orange rounded-full animate-pulse" style="bottom: 15px; right: 5px;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h2 class="mt-6 text-3xl font-extrabold text-gray-900">
+                    Bem-vindo de volta!
+                </h2>
+                <p class="mt-2 text-sm text-gray-600">
+                    Faça login para acessar o sistema
+                </p>
+            </div>
+            
+            <!-- Formulário -->
+            <form class="mt-8 space-y-6" method="POST" action="{{ url_for('login') }}">
+                <div class="space-y-4">
+                    <!-- Email -->
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2 text-meetcall-purple"></i>Email
+                        </label>
+                        <input 
+                            id="email" 
+                            name="email" 
+                            type="email" 
+                            required 
+                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple focus:border-transparent transition"
+                            placeholder="seu@email.com"
+                        >
+                    </div>
+                    
+                    <!-- Senha -->
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-lock mr-2 text-meetcall-purple"></i>Senha
+                        </label>
+                        <input 
+                            id="password" 
+                            name="password" 
+                            type="password" 
+                            required 
+                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple focus:border-transparent transition"
+                            placeholder="••••••••"
+                        >
+                    </div>
+                </div>
+                
+                <!-- Lembrar-me e Esqueci senha -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input 
+                            id="remember-me" 
+                            name="remember-me" 
+                            type="checkbox" 
+                            class="h-4 w-4 text-meetcall-purple focus:ring-meetcall-purple border-gray-300 rounded"
+                        >
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-700">
+                            Lembrar-me
+                        </label>
+                    </div>
+                    
+                    <div class="text-sm">
+                        <a href="#" class="font-medium text-meetcall-purple hover:text-meetcall-purple-dark transition">
+                            Esqueceu a senha?
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Botão de Login -->
+                <div>
+                    <button 
+                        type="submit" 
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark hover:from-meetcall-purple-dark hover:to-meetcall-purple focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-meetcall-purple transition transform hover:scale-105 shadow-lg"
+                    >
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i class="fas fa-sign-in-alt text-meetcall-orange"></i>
+                        </span>
+                        Entrar no Sistema
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Informações adicionais -->
+            <div class="mt-6">
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">
+                            Credenciais de teste
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mt-4 text-xs text-gray-600 bg-gray-50 rounded-lg p-4">
+                    <p class="font-semibold mb-2"><i class="fas fa-info-circle text-meetcall-orange mr-2"></i>Use para testar:</p>
+                    <p><strong>Email:</strong> admin@meetcall.com</p>
+                    <p><strong>Senha:</strong> admin123</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer do Login -->
+        <p class="mt-4 text-center text-sm text-white">
+            © 2025 Meet Call. Todos os direitos reservados.
+        </p>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+</style>
+{% endblock %}
