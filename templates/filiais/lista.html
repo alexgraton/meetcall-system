@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Filiais - Meet Call{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8 fade-in">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    <i class="fas fa-building text-meetcall-purple mr-3"></i>Filiais
+                </h1>
+                <p class="mt-2 text-sm text-gray-600">Gerenciamento de filiais e unidades</p>
+            </div>
+            <a href="{{ url_for('filiais.nova') }}" class="bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark text-white px-6 py-3 rounded-lg hover:shadow-lg transition transform hover:scale-105">
+                <i class="fas fa-plus mr-2"></i>Nova Filial
+            </a>
+        </div>
+    </div>
+
+    <!-- Tabela de Filiais -->
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden fade-in">
+        {% if filiais %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Código</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Nome</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">CNPJ</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Cidade/Estado</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Tipo</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-white uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-center text-xs font-medium text-white uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for filial in filiais %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ filial.codigo }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">{{ filial.nome }}</div>
+                            {% if filial.razao_social %}
+                            <div class="text-sm text-gray-500">{{ filial.razao_social }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ filial.cnpj or '-' }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                {% if filial.cidade and filial.estado %}
+                                    {{ filial.cidade }}/{{ filial.estado }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if filial.is_matriz %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                <i class="fas fa-star mr-1"></i> Matriz
+                            </span>
+                            {% else %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                <i class="fas fa-building mr-1"></i> Filial
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if filial.is_active %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i> Ativo
+                            </span>
+                            {% else %}
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                <i class="fas fa-times-circle mr-1"></i> Inativo
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                            <a href="{{ url_for('filiais.editar', filial_id=filial.id) }}" 
+                               class="text-blue-600 hover:text-blue-900 mr-3" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button onclick="toggleFilial({{ filial.id }}, '{{ filial.nome }}', {{ 'true' if filial.is_active else 'false' }})" 
+                                    class="{% if filial.is_active %}text-red-600 hover:text-red-900{% else %}text-green-600 hover:text-green-900{% endif %}" 
+                                    title="{% if filial.is_active %}Desativar{% else %}Ativar{% endif %}">
+                                <i class="fas fa-{% if filial.is_active %}ban{% else %}check{% endif %}"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="fas fa-building text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">Nenhuma filial cadastrada</p>
+            <a href="{{ url_for('filiais.nova') }}" class="inline-block mt-4 text-meetcall-purple hover:text-meetcall-purple-dark">
+                Cadastrar primeira filial →
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleFilial(filialId, nome, isActive) {
+    const action = isActive ? 'desativar' : 'ativar';
+    if (confirm(`Tem certeza que deseja ${action} a filial "${nome}"?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/filiais/toggle/${filialId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

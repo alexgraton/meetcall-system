@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if fornecedor else 'Novo' }} Fornecedor - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">
+            {% if fornecedor %}Editar Fornecedor{% else %}Novo Fornecedor{% endif %}
+        </h1>
+        <p class="text-gray-600 mt-1">Preencha os dados do fornecedor</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <form method="POST" id="fornecedorForm">
+            <!-- Campo hidden para contatos JSON -->
+            <input type="hidden" name="contatos_json" id="contatos_json" value="[]">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Tipo Pessoa -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo <span class="text-red-500">*</span>
+                    </label>
+                    <select name="tipo_pessoa" id="tipo_pessoa" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                        <option value="juridica" {% if not fornecedor or fornecedor.tipo_pessoa == 'juridica' %}selected{% endif %}>Pessoa Jurídica (CNPJ)</option>
+                        <option value="fisica" {% if fornecedor and fornecedor.tipo_pessoa == 'fisica' %}selected{% endif %}>Pessoa Física (CPF)</option>
+                    </select>
+                </div>
+
+                <!-- CNPJ/CPF -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2" id="label_cnpj">
+                        CNPJ
+                    </label>
+                    <input type="text" name="cnpj" id="cnpj" value="{{ fornecedor.cnpj if fornecedor else '' }}" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
+                           placeholder="00.000.000/0000-00">
+                </div>
+
+                <!-- Nome -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Nome <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="nome" value="{{ fornecedor.nome if fornecedor else '' }}" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Razão Social -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Razão Social</label>
+                    <input type="text" name="razao_social" value="{{ fornecedor.razao_social if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" name="email" value="{{ fornecedor.email if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Telefone -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
+                    <input type="text" name="telefone" id="telefone" value="{{ fornecedor.telefone if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
+                           placeholder="(00) 00000-0000">
+                </div>
+
+                <!-- CEP -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">CEP</label>
+                    <input type="text" name="cep" id="cep" value="{{ fornecedor.cep if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
+                           placeholder="00000-000">
+                </div>
+
+                <!-- Endereço -->
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
+                    <input type="text" name="endereco" value="{{ fornecedor.endereco if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Número -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Número</label>
+                    <input type="text" name="numero" value="{{ fornecedor.numero if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Complemento -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Complemento</label>
+                    <input type="text" name="complemento" value="{{ fornecedor.complemento if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Bairro -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Bairro</label>
+                    <input type="text" name="bairro" value="{{ fornecedor.bairro if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Cidade -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
+                    <input type="text" name="cidade" value="{{ fornecedor.cidade if fornecedor else '' }}"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+
+                <!-- Estado -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <select name="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                        <option value="">Selecione</option>
+                        {% set estados = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
+                        {% for uf in estados %}
+                        <option value="{{ uf }}" {% if fornecedor and fornecedor.estado == uf %}selected{% endif %}>{{ uf }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Seção de Contatos -->
+            <div class="mt-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">Contatos</h3>
+                    <button type="button" onclick="adicionarContato()" class="bg-meetcall-orange hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-plus mr-2"></i>Adicionar Contato
+                    </button>
+                </div>
+                <div id="contatosContainer" class="space-y-3">
+                    <!-- Contatos serão inseridos aqui via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex justify-end mt-8 space-x-4">
+                <a href="{{ url_for('fornecedores.lista') }}" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancelar</a>
+                <button type="submit" class="px-6 py-2 bg-meetcall-purple hover:bg-meetcall-purple-dark text-white rounded-lg">
+                    <i class="fas fa-save mr-2"></i>{{ 'Atualizar' if fornecedor else 'Salvar' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Gerenciamento de contatos
+let contatos = [];
+
+{% if fornecedor and fornecedor.contatos %}
+contatos = {{ fornecedor.contatos | tojson }};
+{% endif %}
+
+function renderContatos() {
+    const container = document.getElementById('contatosContainer');
+    container.innerHTML = '';
+    
+    if (contatos.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm italic">Nenhum contato adicionado</p>';
+        return;
+    }
+    
+    contatos.forEach((contato, index) => {
+        const div = document.createElement('div');
+        div.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
+        div.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div class="grid grid-cols-2 gap-4 flex-1">
+                    <div><strong class="text-sm text-gray-700">Nome:</strong> <span class="text-sm">${contato.nome || '-'}</span></div>
+                    <div><strong class="text-sm text-gray-700">Cargo:</strong> <span class="text-sm">${contato.cargo || '-'}</span></div>
+                    <div><strong class="text-sm text-gray-700">Telefone:</strong> <span class="text-sm">${contato.telefone || '-'}</span></div>
+                    <div><strong class="text-sm text-gray-700">Email:</strong> <span class="text-sm">${contato.email || '-'}</span></div>
+                </div>
+                <div class="ml-4 space-x-2">
+                    <button type="button" onclick="editarContato(${index})" class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
+                    <button type="button" onclick="removerContato(${index})" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+    
+    // Atualizar campo hidden
+    document.getElementById('contatos_json').value = JSON.stringify(contatos);
+}
+
+function adicionarContato() {
+    const nome = prompt('Nome do contato:');
+    if (!nome) return;
+    
+    const cargo = prompt('Cargo:') || '';
+    const telefone = prompt('Telefone:') || '';
+    const email = prompt('Email:') || '';
+    
+    contatos.push({ nome, cargo, telefone, email });
+    renderContatos();
+}
+
+function editarContato(index) {
+    const contato = contatos[index];
+    const nome = prompt('Nome do contato:', contato.nome);
+    if (!nome) return;
+    
+    contatos[index] = {
+        nome,
+        cargo: prompt('Cargo:', contato.cargo) || '',
+        telefone: prompt('Telefone:', contato.telefone) || '',
+        email: prompt('Email:', contato.email) || ''
+    };
+    renderContatos();
+}
+
+function removerContato(index) {
+    if (confirm('Remover este contato?')) {
+        contatos.splice(index, 1);
+        renderContatos();
+    }
+}
+
+// Máscaras
+document.getElementById('cnpj').addEventListener('input', function(e) {
+    let val = e.target.value.replace(/\D/g, '');
+    const tipoPessoa = document.getElementById('tipo_pessoa').value;
+    
+    if (tipoPessoa === 'juridica') {
+        // CNPJ: 00.000.000/0000-00
+        if (val.length > 14) val = val.substr(0, 14);
+        if (val.length > 12) val = val.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+        else if (val.length > 8) val = val.replace(/(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+        else if (val.length > 5) val = val.replace(/(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        else if (val.length > 2) val = val.replace(/(\d{2})(\d{0,3})/, '$1.$2');
+    } else {
+        // CPF: 000.000.000-00
+        if (val.length > 11) val = val.substr(0, 11);
+        if (val.length > 9) val = val.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        else if (val.length > 6) val = val.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+        else if (val.length > 3) val = val.replace(/(\d{3})(\d{0,3})/, '$1.$2');
+    }
+    
+    e.target.value = val;
+});
+
+document.getElementById('telefone').addEventListener('input', function(e) {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 11) val = val.substr(0, 11);
+    if (val.length > 10) val = val.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    else if (val.length > 6) val = val.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    else if (val.length > 2) val = val.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    e.target.value = val;
+});
+
+document.getElementById('cep').addEventListener('input', function(e) {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 8) val = val.substr(0, 8);
+    if (val.length > 5) val = val.replace(/(\d{5})(\d{0,3})/, '$1-$2');
+    e.target.value = val;
+});
+
+// Atualizar label e placeholder ao mudar tipo de pessoa
+document.getElementById('tipo_pessoa').addEventListener('change', function() {
+    const label = document.getElementById('label_cnpj');
+    const input = document.getElementById('cnpj');
+    
+    if (this.value === 'juridica') {
+        label.textContent = 'CNPJ';
+        input.placeholder = '00.000.000/0000-00';
+    } else {
+        label.textContent = 'CPF';
+        input.placeholder = '000.000.000-00';
+    }
+    input.value = '';
+});
+
+// Renderizar contatos ao carregar
+renderContatos();
+</script>
+{% endblock %}

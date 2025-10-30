@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Dar Baixa - Conta a Pagar{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Dar Baixa em Conta a Pagar</h1>
+        <a href="{{ url_for('contas_pagar.lista') }}" class="text-gray-600 hover:text-gray-800">
+            <i class="fas fa-times"></i>
+        </a>
+    </div>
+
+    <!-- Informações da Conta -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-600">Fornecedor:</p>
+                <p class="font-semibold">{{ conta.fornecedor_fantasia or conta.fornecedor_nome }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Vencimento:</p>
+                <p class="font-semibold">{{ conta.data_vencimento.strftime('%d/%m/%Y') }}</p>
+            </div>
+            <div class="col-span-2">
+                <p class="text-sm text-gray-600">Descrição:</p>
+                <p class="font-semibold">{{ conta.descricao }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Valor Original:</p>
+                <p class="text-2xl font-bold text-blue-700">R$ {{ conta.valor_total|moeda }}</p>
+            </div>
+            {% if conta.parcela_atual %}
+            <div>
+                <p class="text-sm text-gray-600">Parcela:</p>
+                <p class="font-semibold">{{ conta.parcela_atual }}/{{ conta.numero_parcelas }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Formulário de Baixa -->
+    <form method="POST" id="formBaixa">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Data do Pagamento <span class="text-red-500">*</span>
+                </label>
+                <input type="date" name="data_pagamento" id="data_pagamento" required
+                       value="{{ today }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Desconto (R$)</label>
+                <input type="number" name="valor_desconto" id="valor_desconto" step="0.01" min="0" value="0"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+
+            <!-- Cálculo Automático -->
+            <div id="calculo" class="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Valor Original:</span>
+                    <span class="font-semibold">R$ <span id="valor_original">{{ conta.valor_total|moeda }}</span></span>
+                </div>
+                <div class="flex justify-between text-sm" id="linha_atraso" style="display: none;">
+                    <span class="text-gray-600">Dias de Atraso:</span>
+                    <span class="font-semibold text-red-600"><span id="dias_atraso">0</span> dias</span>
+                </div>
+                <div class="flex justify-between text-sm" id="linha_multa" style="display: none;">
+                    <span class="text-gray-600">Multa ({{ conta.percentual_multa }}%):</span>
+                    <span class="font-semibold text-red-600">R$ <span id="valor_multa">0.00</span></span>
+                </div>
+                <div class="flex justify-between text-sm" id="linha_juros" style="display: none;">
+                    <span class="text-gray-600">Juros ({{ conta.percentual_juros }}% ao dia):</span>
+                    <span class="font-semibold text-red-600">R$ <span id="valor_juros">0.00</span></span>
+                </div>
+                <div class="flex justify-between text-sm" id="linha_desconto" style="display: none;">
+                    <span class="text-gray-600">Desconto:</span>
+                    <span class="font-semibold text-green-600">- R$ <span id="desconto_calc">0.00</span></span>
+                </div>
+                <div class="flex justify-between text-lg font-bold border-t pt-2 mt-2">
+                    <span>Total a Pagar:</span>
+                    <span class="text-blue-700">R$ <span id="valor_total_pagar">{{ conta.valor_total|moeda }}</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-4 pt-6 border-t mt-6">
+            <a href="{{ url_for('contas_pagar.lista') }}" 
+               class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-300">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition duration-300">
+                <i class="fas fa-check mr-2"></i>Confirmar Pagamento
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Dados da conta
+const contaId = {{ conta.id }};
+const valorOriginal = {{ conta.valor_total }};
+const dataVencimento = new Date('{{ conta.data_vencimento }}');
+
+// Calcular juros e multa em tempo real
+function calcularEncargos() {
+    const dataPagamento = document.getElementById('data_pagamento').value;
+    const valorDesconto = parseFloat(document.getElementById('valor_desconto').value) || 0;
+    
+    if (!dataPagamento) return;
+    
+    // Fazer requisição para API de cálculo
+    fetch(`/contas-pagar/api/calcular-juros/${contaId}?data_pagamento=${dataPagamento}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('dias_atraso').textContent = data.dias_atraso;
+            document.getElementById('valor_multa').textContent = data.valor_multa.toFixed(2);
+            document.getElementById('valor_juros').textContent = data.valor_juros.toFixed(2);
+            document.getElementById('desconto_calc').textContent = valorDesconto.toFixed(2);
+            
+            const valorTotal = data.valor_total - valorDesconto;
+            document.getElementById('valor_total_pagar').textContent = valorTotal.toFixed(2);
+            
+            // Mostrar/ocultar linhas
+            document.getElementById('linha_atraso').style.display = data.dias_atraso > 0 ? 'flex' : 'none';
+            document.getElementById('linha_multa').style.display = data.valor_multa > 0 ? 'flex' : 'none';
+            document.getElementById('linha_juros').style.display = data.valor_juros > 0 ? 'flex' : 'none';
+            document.getElementById('linha_desconto').style.display = valorDesconto > 0 ? 'flex' : 'none';
+        })
+        .catch(error => {
+            console.error('Erro ao calcular encargos:', error);
+        });
+}
+
+// Eventos
+document.getElementById('data_pagamento').addEventListener('change', calcularEncargos);
+document.getElementById('valor_desconto').addEventListener('input', calcularEncargos);
+
+// Definir data de hoje por padrão e calcular
+document.getElementById('data_pagamento').value = new Date().toISOString().split('T')[0];
+calcularEncargos();
+</script>
+{% endblock %}

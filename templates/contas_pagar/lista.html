@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Contas a Pagar - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Contas a Pagar</h1>
+        <a href="{{ url_for('contas_pagar.nova') }}" class="bg-meetcall-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
+            <i class="fas fa-plus mr-2"></i>
+            Nova Conta
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Totalizadores -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-clock text-yellow-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Pendentes</p>
+                    <p class="text-xl font-bold text-yellow-700">R$ {{ totalizadores.total_pendente|moeda }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Vencidas</p>
+                    <p class="text-xl font-bold text-red-700">R$ {{ totalizadores.total_vencido|moeda }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Pagas</p>
+                    <p class="text-xl font-bold text-green-700">R$ {{ totalizadores.total_pago|moeda }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-calculator text-blue-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Total Geral</p>
+                    <p class="text-xl font-bold text-blue-700">R$ {{ totalizadores.total_geral|moeda }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Fornecedor:</label>
+                <select name="fornecedor_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Todos</option>
+                    {% for fornecedor in fornecedores %}
+                        <option value="{{ fornecedor.id }}" {% if filtros.fornecedor_id == fornecedor.id %}selected{% endif %}>
+                            {{ fornecedor.razao_social or fornecedor.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filial:</label>
+                <select name="filial_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Todas</option>
+                    {% for filial in filiais %}
+                        <option value="{{ filial.id }}" {% if filtros.filial_id == filial.id %}selected{% endif %}>{{ filial.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status:</label>
+                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Todos</option>
+                    <option value="pendente" {% if filtros.status == 'pendente' %}selected{% endif %}>Pendente</option>
+                    <option value="vencido" {% if filtros.status == 'vencido' %}selected{% endif %}>Vencido</option>
+                    <option value="pago" {% if filtros.status == 'pago' %}selected{% endif %}>Pago</option>
+                    <option value="cancelado" {% if filtros.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Início:</label>
+                <input type="date" name="data_inicio" value="{{ filtros.data_inicio or '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim:</label>
+                <input type="date" name="data_fim" value="{{ filtros.data_fim or '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+            <div class="flex items-end col-span-full">
+                <button type="submit" class="bg-meetcall-purple hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition duration-300 mr-2">
+                    <i class="fas fa-filter mr-2"></i>Filtrar
+                </button>
+                <a href="{{ url_for('contas_pagar.lista') }}" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition duration-300">
+                    <i class="fas fa-times mr-2"></i>Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela -->
+    <div class="overflow-x-auto">
+        <table id="contasTable" class="min-w-full table-auto">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="px-4 py-2 text-left">Vencimento</th>
+                    <th class="px-4 py-2 text-left">Fornecedor</th>
+                    <th class="px-4 py-2 text-left">Descrição</th>
+                    <th class="px-4 py-2 text-left">Parcela</th>
+                    <th class="px-4 py-2 text-left">Valor</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                    <th class="px-4 py-2 text-left">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conta in contas %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2">
+                        <span class="font-semibold">{{ conta.data_vencimento.strftime('%d/%m/%Y') }}</span>
+                        {% if conta.status == 'vencido' %}
+                            <br><span class="text-xs text-red-600">Atrasado</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="font-semibold">{{ conta.fornecedor_fantasia or conta.fornecedor_nome }}</div>
+                        {% if conta.filial_nome %}
+                            <span class="text-xs text-gray-500">{{ conta.filial_nome }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <div>{{ conta.descricao }}</div>
+                        {% if conta.numero_documento %}
+                            <span class="text-xs text-gray-500">Doc: {{ conta.numero_documento }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        {% if conta.numero_parcelas > 1 %}
+                            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
+                                {{ conta.parcela_atual }}/{{ conta.numero_parcelas }}
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400">À vista</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="font-bold text-lg">R$ {{ conta.valor_total|moeda }}</span>
+                        {% if conta.status == 'pago' and conta.valor_pago %}
+                            <br><span class="text-xs text-green-600">Pago: R$ {{ conta.valor_pago|moeda }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold
+                            {% if conta.status == 'pago' %}bg-green-100 text-green-800
+                            {% elif conta.status == 'vencido' %}bg-red-100 text-red-800
+                            {% elif conta.status == 'cancelado' %}bg-gray-100 text-gray-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ conta.status|upper }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex space-x-2">
+                            <a href="{{ url_for('contas_pagar.detalhes', conta_id=conta.id) }}" 
+                               class="text-blue-600 hover:text-blue-800" title="Detalhes">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            {% if conta.status in ['pendente', 'vencido'] %}
+                                <a href="{{ url_for('contas_pagar.baixar', conta_id=conta.id) }}" 
+                                   class="text-green-600 hover:text-green-800" title="Dar Baixa">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </a>
+                                <button onclick="cancelarConta('{{ conta.id }}', '{{ conta.descricao }}')" 
+                                        class="text-red-600 hover:text-red-800" title="Cancelar">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- jQuery e DataTables -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#contasTable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+        },
+        order: [[0, 'asc']],
+        pageLength: 25
+    });
+});
+
+function cancelarConta(id, descricao) {
+    if (confirm(`Tem certeza que deseja cancelar a conta "${descricao}"?\n\nEsta ação não pode ser desfeita.`)) {
+        fetch(`/contas-pagar/cancelar/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Conta cancelada com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao cancelar: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao processar requisição');
+            console.error('Error:', error);
+        });
+    }
+}
+</script>
+{% endblock %}

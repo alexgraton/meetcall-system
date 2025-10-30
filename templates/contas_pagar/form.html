@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Nova Conta a Pagar - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Nova Conta a Pagar</h1>
+        <a href="{{ url_for('contas_pagar.lista') }}" class="text-gray-600 hover:text-gray-800">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="space-y-6">
+        <!-- Informações Principais -->
+        <div class="border-b pb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Informações Principais</h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Fornecedor <span class="text-red-500">*</span>
+                    </label>
+                    <select name="fornecedor_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione...</option>
+                        {% for fornecedor in fornecedores %}
+                            <option value="{{ fornecedor.id }}">{{ fornecedor.razao_social or fornecedor.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Descrição <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="descricao" required placeholder="Ex: Aluguel - Janeiro/2025"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Número do Documento</label>
+                    <input type="text" name="numero_documento" placeholder="NF, Boleto, etc."
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Filial</label>
+                    <select name="filial_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione...</option>
+                        {% for filial in filiais %}
+                            <option value="{{ filial.id }}">{{ filial.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classificação Contábil -->
+        <div class="border-b pb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Classificação Contábil</h2>
+            
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Serviço</label>
+                    <select name="tipo_servico_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione...</option>
+                        {% for tipo in tipos_servicos %}
+                            <option value="{{ tipo.id }}">{{ tipo.descricao }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Centro de Custo</label>
+                    <select name="centro_custo_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione...</option>
+                        {% for centro in centros_custos %}
+                            <option value="{{ centro.id }}">{{ centro.descricao }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Conta Contábil (Despesa)</label>
+                    <select name="conta_contabil_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione...</option>
+                        {% for conta in contas_analiticas %}
+                            <option value="{{ conta.id }}">{{ conta.codigo }} - {{ conta.descricao }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Valores e Datas -->
+        <div class="border-b pb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Valores e Datas</h2>
+            
+            <div class="grid grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Valor Total <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" name="valor_total" required step="0.01" min="0.01" placeholder="0.00"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Data de Emissão <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="data_emissao" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Data de Vencimento <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="data_vencimento" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Número de Parcelas</label>
+                    <input type="number" name="numero_parcelas" min="1" value="1"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <p class="text-xs text-gray-500 mt-1">Parcelas com intervalo de 30 dias</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Juros e Multa -->
+        <div class="border-b pb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Encargos por Atraso</h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Percentual de Juros (%)</label>
+                    <input type="number" name="percentual_juros" step="0.01" min="0" value="0" placeholder="Ex: 0.033 (1% ao mês)"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <p class="text-xs text-gray-500 mt-1">Juros ao dia aplicado sobre atraso</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Percentual de Multa (%)</label>
+                    <input type="number" name="percentual_multa" step="0.01" min="0" value="0" placeholder="Ex: 2"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <p class="text-xs text-gray-500 mt-1">Multa única aplicada ao atrasar</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recorrência (Futuro) -->
+        <div class="border-b pb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Recorrência (Opcional)</h2>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="flex items-center">
+                    <input type="checkbox" name="recorrente" id="recorrente" class="mr-2">
+                    <label for="recorrente" class="text-sm font-medium text-gray-700">Conta Recorrente</label>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Recorrência</label>
+                    <select name="tipo_recorrencia" id="tipo_recorrencia" disabled
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione...</option>
+                        <option value="mensal">Mensal</option>
+                        <option value="trimestral">Trimestral</option>
+                        <option value="semestral">Semestral</option>
+                        <option value="anual">Anual</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
+            <textarea name="observacoes" rows="3" placeholder="Informações adicionais..."
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple"></textarea>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end space-x-4 pt-6 border-t">
+            <a href="{{ url_for('contas_pagar.lista') }}" 
+               class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-300">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="bg-meetcall-purple hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition duration-300">
+                Cadastrar Conta
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Habilitar tipo de recorrência quando marcar checkbox
+document.getElementById('recorrente').addEventListener('change', function() {
+    document.getElementById('tipo_recorrencia').disabled = !this.checked;
+});
+
+// Definir data de emissão como hoje por padrão
+document.querySelector('input[name="data_emissao"]').value = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

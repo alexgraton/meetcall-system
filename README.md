@@ -50,31 +50,55 @@ python init_database.py
 Este script irá:
 - Criar o banco de dados `meetcall_system`
 - Criar a tabela `users`
-- Inserir usuários padrão para teste
+- Solicitar a criação de um usuário administrador
+- Opcionalmente criar um usuário de teste
 
-### 5. Executar o Sistema
+**Modo não interativo** (usa senha padrão - apenas desenvolvimento):
+```bash
+python init_database.py --no-interactive
+```
+
+### 5. Criar Novos Usuários (Opcional)
+
+Para adicionar novos usuários após a inicialização:
+
+```bash
+python create_user.py
+```
+
+Para listar usuários existentes:
+
+```bash
+python create_user.py --list
+```
+
+### 6. Executar o Sistema
 
 ```bash
 python app.py
 ```
 
-### 6. Acessar no Navegador
+### 7. Acessar no Navegador
 
 Abra: `http://localhost:5000`
 
-### 7. Testar Conexão com Banco (Opcional)
+### 8. Testar Conexão com Banco (Opcional)
 
-Acesse: `http://localhost:5000/test-db`
+```bash
+python test_connection.py
+```
 
-## 🔑 Credenciais de Teste
+Ou acesse: `http://localhost:5000/test-db`
 
-**Usuário Administrador:**
+## 🔑 Acesso ao Sistema
+
+As credenciais são definidas durante a inicialização do banco de dados.
+
+Se você executou em modo não interativo, use:
 - Email: `admin@meetcall.com`
-- Senha: `admin123`
+- Senha: `Admin@123`
 
-**Usuário Comum:**
-- Email: `usuario@meetcall.com`
-- Senha: `user123`
+**⚠️ Importante:** Altere a senha padrão após o primeiro login!
 
 ## 📂 Estrutura do Projeto
 

@@ -1,14 +1,44 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from functools import wraps
 from datetime import datetime
 import os
 from config import Config
 from database import db
 
+# Importar blueprints
+from routes.filiais import filiais_bp
+from routes.tipos_servicos import tipos_servicos_bp
+from routes.fornecedores import fornecedores_bp
+from routes.clientes import clientes_bp
+from routes.centro_custos import centro_custos_bp
+from routes.plano_contas import plano_contas_bp
+from routes.contas_pagar import contas_pagar_bp
+from routes.contas_receber import contas_receber_bp
+from routes.lancamentos import lancamentos_bp
+
 # Inicializar Flask com configurações
 config = Config()
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
+
+# Filtro customizado para formatação monetária
+@app.template_filter('moeda')
+def formatar_moeda(valor):
+    """Formata valor numérico como moeda brasileira (R$ 1.234,56)"""
+    if valor is None:
+        valor = 0
+    return f"{float(valor):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+
+# Registrar blueprints
+app.register_blueprint(filiais_bp)
+app.register_blueprint(tipos_servicos_bp)
+app.register_blueprint(fornecedores_bp)
+app.register_blueprint(clientes_bp)
+app.register_blueprint(centro_custos_bp)
+app.register_blueprint(plano_contas_bp)
+app.register_blueprint(contas_pagar_bp)
+app.register_blueprint(contas_receber_bp)
+app.register_blueprint(lancamentos_bp)
 
 # Decorator para rotas protegidas
 def login_required(f):
@@ -17,6 +47,21 @@ def login_required(f):
         if 'user' not in session:
             flash('Por favor, faça login para acessar esta página.', 'warning')
             return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Decorator para rotas que exigem permissão de admin
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            flash('Por favor, faça login para acessar esta página.', 'warning')
+            return redirect(url_for('login'))
+        
+        if session.get('role') != 'admin':
+            flash('Você não tem permissão para acessar esta página.', 'error')
+            return redirect(url_for('dashboard'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -42,6 +87,7 @@ def login():
                 session['user'] = user['email']
                 session['user_id'] = user['id']
                 session['name'] = user['name']
+                session['role'] = user['role']
                 flash(f'Bem-vindo(a), {user["name"]}!', 'success')
                 return redirect(url_for('dashboard'))
             else:
@@ -75,8 +121,121 @@ def dashboard():
 
 @app.route('/cadastros')
 @login_required
+@admin_required
 def cadastros():
-    return render_template('cadastros.html')
+    """Página de gerenciamento de usuários (apenas admin)"""
+    users = db.get_all_users()
+    return render_template('cadastros.html', users=users)
+
+@app.route('/cadastros/novo', methods=['POST'])
+@admin_required
+def criar_usuario():
+    """Cria um novo usuário"""
+    try:
+        email = request.form.get('email', '').strip()
+        name = request.form.get('name', '').strip()
+        password = request.form.get('password', '').strip()
+        role = request.form.get('role', 'user')
+        
+        # Validações
+        if not email or not name or not password:
+            flash('Todos os campos são obrigatórios!', 'error')
+            return redirect(url_for('cadastros'))
+        
+        if len(password) < 6:
+            flash('A senha deve ter no mínimo 6 caracteres!', 'error')
+            return redirect(url_for('cadastros'))
+        
+        if role not in ['admin', 'user']:
+            role = 'user'
+        
+        # Cria o usuário
+        user_id = db.create_user(email, password, name, role)
+        flash(f'Usuário {name} criado com sucesso!', 'success')
+        
+    except ValueError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        flash(f'Erro ao criar usuário: {str(e)}', 'error')
+    
+    return redirect(url_for('cadastros'))
+
+@app.route('/cadastros/editar/<int:user_id>', methods=['POST'])
+@admin_required
+def editar_usuario(user_id):
+    """Edita um usuário existente"""
+    try:
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        role = request.form.get('role', 'user')
+        
+        if not name or not email:
+            flash('Nome e email são obrigatórios!', 'error')
+            return redirect(url_for('cadastros'))
+        
+        if role not in ['admin', 'user']:
+            role = 'user'
+        
+        # Não permitir que o usuário remova o próprio admin
+        if user_id == session.get('user_id') and role != 'admin':
+            flash('Você não pode remover sua própria permissão de administrador!', 'error')
+            return redirect(url_for('cadastros'))
+        
+        db.update_user(user_id, name=name, email=email, role=role)
+        flash('Usuário atualizado com sucesso!', 'success')
+        
+        # Atualiza a sessão se for o próprio usuário
+        if user_id == session.get('user_id'):
+            session['name'] = name
+            session['user'] = email
+        
+    except ValueError as e:
+        flash(str(e), 'error')
+    except Exception as e:
+        flash(f'Erro ao editar usuário: {str(e)}', 'error')
+    
+    return redirect(url_for('cadastros'))
+
+@app.route('/cadastros/toggle/<int:user_id>', methods=['POST'])
+@admin_required
+def toggle_usuario(user_id):
+    """Ativa ou desativa um usuário"""
+    try:
+        # Não permitir desativar o próprio usuário
+        if user_id == session.get('user_id'):
+            flash('Você não pode desativar sua própria conta!', 'error')
+            return redirect(url_for('cadastros'))
+        
+        db.toggle_user_status(user_id)
+        flash('Status do usuário alterado com sucesso!', 'success')
+        
+    except Exception as e:
+        flash(f'Erro ao alterar status: {str(e)}', 'error')
+    
+    return redirect(url_for('cadastros'))
+
+@app.route('/cadastros/resetar-senha/<int:user_id>', methods=['POST'])
+@admin_required
+def resetar_senha(user_id):
+    """Reseta a senha de um usuário"""
+    try:
+        nova_senha = request.form.get('nova_senha', '').strip()
+        
+        if not nova_senha or len(nova_senha) < 6:
+            flash('A senha deve ter no mínimo 6 caracteres!', 'error')
+            return redirect(url_for('cadastros'))
+        
+        user = db.get_user_by_id(user_id)
+        if user:
+            db.update_user_password(user['email'], nova_senha)
+            flash(f'Senha de {user["name"]} resetada com sucesso!', 'success')
+        else:
+            flash('Usuário não encontrado!', 'error')
+        
+    except Exception as e:
+        flash(f'Erro ao resetar senha: {str(e)}', 'error')
+    
+    return redirect(url_for('cadastros'))
 
 @app.route('/configuracoes')
 @login_required

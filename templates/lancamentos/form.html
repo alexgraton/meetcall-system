@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lancamento %}Editar{% else %}Novo{% endif %} Lançamento - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">{% if lancamento %}Editar{% else %}Novo{% endif %} Lançamento</h1>
+        <a href="{{ url_for('lancamentos.lista') }}" class="text-gray-600 hover:text-gray-800">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="space-y-6">
+        <!-- Tipo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo: <span class="text-red-500">*</span></label>
+                <select name="tipo" id="tipo" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple" onchange="atualizarVinculos()">
+                    <option value="">Selecione...</option>
+                    <option value="despesa" {% if lancamento and lancamento.tipo == 'despesa' %}selected{% endif %}>Despesa</option>
+                    <option value="receita" {% if lancamento and lancamento.tipo == 'receita' %}selected{% endif %}>Receita</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Lançamento: <span class="text-red-500">*</span></label>
+                <input type="date" name="data_lancamento" required value="{{ lancamento.data_lancamento.strftime('%Y-%m-%d') if lancamento else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+        </div>
+
+        <!-- Descrição e Valor -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição: <span class="text-red-500">*</span></label>
+                <input type="text" name="descricao" required value="{{ lancamento.descricao if lancamento else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Valor: <span class="text-red-500">*</span></label>
+                <input type="number" name="valor" required step="0.01" min="0.01" value="{{ lancamento.valor if lancamento else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+        </div>
+
+        <!-- Filial e Data Competência -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filial: <span class="text-red-500">*</span></label>
+                <select name="filial_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Selecione...</option>
+                    {% for filial in filiais %}
+                        <option value="{{ filial.id }}" {% if lancamento and lancamento.filial_id == filial.id %}selected{% endif %}>{{ filial.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Competência:</label>
+                <input type="date" name="data_competencia" value="{{ lancamento.data_competencia.strftime('%Y-%m-%d') if lancamento and lancamento.data_competencia else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+        </div>
+
+        <!-- Tipo Serviço e Centro de Custo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Serviço:</label>
+                <select name="tipo_servico_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Nenhum</option>
+                    {% for tipo in tipos_servicos %}
+                        <option value="{{ tipo.id }}" {% if lancamento and lancamento.tipo_servico_id == tipo.id %}selected{% endif %}>{{ tipo.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Centro de Custo:</label>
+                <select name="centro_custo_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Nenhum</option>
+                    {% for cc in centros_custos %}
+                        <option value="{{ cc.id }}" {% if lancamento and lancamento.centro_custo_id == cc.id %}selected{% endif %}>{{ cc.codigo }} - {{ cc.descricao }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Conta Contábil -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Conta Contábil:</label>
+            <select name="conta_contabil_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                <option value="">Nenhuma</option>
+                {% for conta in plano_contas %}
+                    <option value="{{ conta.id }}" {% if lancamento and lancamento.conta_contabil_id == conta.id %}selected{% endif %}>
+                        {{ conta.codigo }} - {{ conta.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Vínculos (Fornecedor/Cliente) -->
+        <div id="vinculo-fornecedor" style="display: none;">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fornecedor:</label>
+            <select name="fornecedor_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                <option value="">Nenhum</option>
+                {% for fornecedor in fornecedores %}
+                    <option value="{{ fornecedor.id }}" {% if lancamento and lancamento.fornecedor_id == fornecedor.id %}selected{% endif %}>
+                        {{ fornecedor.razao_social or fornecedor.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="vinculo-cliente" style="display: none;">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cliente:</label>
+            <select name="cliente_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                <option value="">Nenhum</option>
+                {% for cliente in clientes %}
+                    <option value="{{ cliente.id }}" {% if lancamento and lancamento.cliente_id == cliente.id %}selected{% endif %}>
+                        {{ cliente.razao_social or cliente.nome }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Forma Pagamento e Número Documento -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento:</label>
+                <select name="forma_pagamento" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Selecione...</option>
+                    <option value="dinheiro" {% if lancamento and lancamento.forma_pagamento == 'dinheiro' %}selected{% endif %}>Dinheiro</option>
+                    <option value="pix" {% if lancamento and lancamento.forma_pagamento == 'pix' %}selected{% endif %}>PIX</option>
+                    <option value="transferencia" {% if lancamento and lancamento.forma_pagamento == 'transferencia' %}selected{% endif %}>Transferência</option>
+                    <option value="debito" {% if lancamento and lancamento.forma_pagamento == 'debito' %}selected{% endif %}>Débito</option>
+                    <option value="credito" {% if lancamento and lancamento.forma_pagamento == 'credito' %}selected{% endif %}>Crédito</option>
+                    <option value="boleto" {% if lancamento and lancamento.forma_pagamento == 'boleto' %}selected{% endif %}>Boleto</option>
+                    <option value="cheque" {% if lancamento and lancamento.forma_pagamento == 'cheque' %}selected{% endif %}>Cheque</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Número Documento:</label>
+                <input type="text" name="numero_documento" value="{{ lancamento.numero_documento if lancamento else '' }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+        </div>
+
+        <!-- Observações -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Observações:</label>
+            <textarea name="observacoes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">{{ lancamento.observacoes if lancamento else '' }}</textarea>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex justify-end space-x-2">
+            <a href="{{ url_for('lancamentos.lista') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Cancelar</a>
+            <button type="submit" class="px-4 py-2 bg-meetcall-purple text-white rounded-lg hover:bg-purple-700">
+                <i class="fas fa-save mr-2"></i>Salvar
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function atualizarVinculos() {
+    const tipo = document.getElementById('tipo').value;
+    const vinculoFornecedor = document.getElementById('vinculo-fornecedor');
+    const vinculoCliente = document.getElementById('vinculo-cliente');
+    
+    if (tipo === 'despesa') {
+        vinculoFornecedor.style.display = 'block';
+        vinculoCliente.style.display = 'none';
+        document.querySelector('select[name="cliente_id"]').value = '';
+    } else if (tipo === 'receita') {
+        vinculoFornecedor.style.display = 'none';
+        vinculoCliente.style.display = 'block';
+        document.querySelector('select[name="fornecedor_id"]').value = '';
+    } else {
+        vinculoFornecedor.style.display = 'none';
+        vinculoCliente.style.display = 'none';
+    }
+}
+
+// Executar ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarVinculos();
+});
+</script>
+{% endblock %}

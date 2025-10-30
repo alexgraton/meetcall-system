@@ -1,0 +1,51 @@
+<!-- Macro recursivo para exibir conta em hierarquia -->
+{% macro render_conta(conta) %}
+{% set nivel_indent = (conta.nivel - 1) * 30 %}
+
+<div class="border-l-2 {% if conta.aceita_lancamento %}border-green-500{% else %}border-yellow-500{% endif %} pl-4 mb-2" style="margin-left: {{ nivel_indent }}px;">
+    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+        <div class="flex items-center flex-1">
+            <div class="mr-3">
+                {% if conta.aceita_lancamento %}
+                    <i class="fas fa-file-invoice-dollar text-green-600"></i>
+                {% else %}
+                    <i class="fas fa-folder text-yellow-600"></i>
+                {% endif %}
+            </div>
+            <div class="font-mono font-semibold text-meetcall-purple mr-4">{{ conta.codigo }}</div>
+            <div class="flex-1">
+                <div class="font-semibold">{{ conta.descricao }}</div>
+                <div class="text-xs text-gray-500">
+                    <span class="mr-3">Tipo: {{ conta.tipo|upper }}</span>
+                    {% if conta.dre_grupo %}
+                        <span class="mr-3">DRE: {{ conta.dre_grupo|replace('_', ' ')|title }}</span>
+                    {% endif %}
+                    <span>Nível: {{ conta.nivel }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold
+                {% if conta.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                {% if conta.is_active %}Ativo{% else %}Inativo{% endif %}
+            </span>
+            <a href="{{ url_for('plano_contas.editar', conta_id=conta.id) }}" 
+               class="text-blue-600 hover:text-blue-800 px-2" title="Editar">
+                <i class="fas fa-edit"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Renderizar filhos recursivamente -->
+{% if conta.filhos %}
+    {% for filho in conta.filhos %}
+        {{ render_conta(filho) }}
+    {% endfor %}
+{% endif %}
+{% endmacro %}
+
+<!-- Se chamado com nivel1, renderizar -->
+{% if nivel1 is defined %}
+    {{ render_conta(nivel1) }}
+{% endif %}

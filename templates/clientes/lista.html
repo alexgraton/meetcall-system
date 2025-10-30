@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Clientes - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Clientes</h1>
+        <a href="{{ url_for('clientes.novo') }}" class="bg-meetcall-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
+            <i class="fas fa-plus mr-2"></i>
+            Novo Cliente
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="overflow-x-auto">
+        <table id="clientesTable" class="min-w-full table-auto">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="px-4 py-2 text-left">Código</th>
+                    <th class="px-4 py-2 text-left">Tipo</th>
+                    <th class="px-4 py-2 text-left">Nome/Razão Social</th>
+                    <th class="px-4 py-2 text-left">CNPJ/CPF</th>
+                    <th class="px-4 py-2 text-left">Telefone</th>
+                    <th class="px-4 py-2 text-left">Email</th>
+                    <th class="px-4 py-2 text-left">Produtos</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                    <th class="px-4 py-2 text-left">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente in clientes %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2">{{ cliente.codigo }}</td>
+                    <td class="px-4 py-2">
+                        {% if cliente.tipo_pessoa == 'juridica' %}
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Jurídica</span>
+                        {% else %}
+                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Física</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="font-semibold">{{ cliente.nome }}</div>
+                        {% if cliente.razao_social %}
+                            <div class="text-sm text-gray-500">{{ cliente.razao_social }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">{{ cliente.cnpj }}</td>
+                    <td class="px-4 py-2">{{ cliente.telefone or '-' }}</td>
+                    <td class="px-4 py-2">{{ cliente.email or '-' }}</td>
+                    <td class="px-4 py-2">
+                        {% if cliente.produtos_count > 0 %}
+                            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">
+                                {{ cliente.produtos_count }} produto{% if cliente.produtos_count > 1 %}s{% endif %}
+                            </span>
+                        {% else %}
+                            <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="toggleStatus('{{ cliente.id }}', {{ cliente.is_active|lower }})" 
+                                class="status-toggle px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition duration-300
+                                {% if cliente.is_active %}bg-green-100 text-green-800 hover:bg-green-200{% else %}bg-red-100 text-red-800 hover:bg-red-200{% endif %}">
+                            {% if cliente.is_active %}Ativo{% else %}Inativo{% endif %}
+                        </button>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex space-x-2">
+                            <a href="{{ url_for('clientes.editar', cliente_id=cliente.id) }}" 
+                               class="text-blue-600 hover:text-blue-800" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button onclick="deleteCliente('{{ cliente.id }}', '{{ cliente.nome }}')" 
+                                    class="text-red-600 hover:text-red-800" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    $('#clientesTable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+        },
+        order: [[0, 'asc']],
+        pageLength: 25
+    });
+});
+
+function toggleStatus(id, currentStatus) {
+    if (confirm('Deseja alterar o status deste cliente?')) {
+        fetch(`/clientes/toggle-status/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao alterar status: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao processar requisição');
+            console.error('Error:', error);
+        });
+    }
+}
+
+function deleteCliente(id, nome) {
+    if (confirm(`Tem certeza que deseja excluir o cliente "${nome}"?\n\nEsta ação não pode ser desfeita.`)) {
+        fetch(`/clientes/deletar/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Cliente excluído com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao excluir cliente: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao processar requisição');
+            console.error('Error:', error);
+        });
+    }
+}
+</script>
+{% endblock %}

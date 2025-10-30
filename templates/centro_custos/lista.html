@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Centros de Custo - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Centros de Custo</h1>
+        <a href="{{ url_for('centro_custos.novo') }}" class="bg-meetcall-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
+            <i class="fas fa-plus mr-2"></i>
+            Novo Centro de Custo
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Filtro por Filial -->
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filtrar por Filial:</label>
+        <select id="filtro-filial" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            <option value="">Todas as Filiais</option>
+            {% for filial in filiais %}
+                <option value="{{ filial.id }}" {% if filial.id == filial_selecionada %}selected{% endif %}>{{ filial.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table id="centrosTable" class="min-w-full table-auto">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="px-4 py-2 text-left">Código</th>
+                    <th class="px-4 py-2 text-left">Descrição</th>
+                    <th class="px-4 py-2 text-left">Filial</th>
+                    <th class="px-4 py-2 text-left">Centro Pai</th>
+                    <th class="px-4 py-2 text-left">Status</th>
+                    <th class="px-4 py-2 text-left">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for centro in centros %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2 font-semibold">{{ centro.codigo }}</td>
+                    <td class="px-4 py-2">{{ centro.descricao }}</td>
+                    <td class="px-4 py-2">
+                        {% if centro.filial_nome %}
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">{{ centro.filial_nome }}</span>
+                        {% else %}
+                            <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        {% if centro.parent_descricao %}
+                            <span class="text-sm text-gray-600">{{ centro.parent_descricao }}</span>
+                        {% else %}
+                            <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="toggleStatus('{{ centro.id }}')" 
+                                class="status-toggle px-3 py-1 rounded-full text-xs font-semibold cursor-pointer transition duration-300
+                                {% if centro.is_active %}bg-green-100 text-green-800 hover:bg-green-200{% else %}bg-red-100 text-red-800 hover:bg-red-200{% endif %}">
+                            {% if centro.is_active %}Ativo{% else %}Inativo{% endif %}
+                        </button>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex space-x-2">
+                            <a href="{{ url_for('centro_custos.editar', centro_custo_id=centro.id) }}" 
+                               class="text-blue-600 hover:text-blue-800" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button onclick="deleteCentro('{{ centro.id }}', '{{ centro.descricao }}')" 
+                                    class="text-red-600 hover:text-red-800" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- jQuery (necessário para DataTables) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- DataTables -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    var table = $('#centrosTable').DataTable({
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+        },
+        order: [[0, 'asc']],
+        pageLength: 25
+    });
+    
+    // Filtro por filial - Usar filtro do DataTables
+    $('#filtro-filial').on('change', function() {
+        const filialId = $(this).val();
+        console.log('Filial selecionada:', filialId);
+        if (filialId) {
+            // Recarregar página com filtro
+            window.location.href = '{{ url_for("centro_custos.lista") }}?filial_id=' + filialId;
+        } else {
+            // Recarregar sem filtro
+            window.location.href = '{{ url_for("centro_custos.lista") }}';
+        }
+    });
+});
+
+function toggleStatus(id) {
+    if (confirm('Deseja alterar o status deste centro de custo?')) {
+        fetch(`/centro-custos/toggle-status/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro ao alterar status: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao processar requisição');
+            console.error('Error:', error);
+        });
+    }
+}
+
+function deleteCentro(id, descricao) {
+    if (confirm(`Tem certeza que deseja excluir o centro de custo "${descricao}"?\n\nEsta ação não pode ser desfeita.`)) {
+        fetch(`/centro-custos/deletar/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Centro de custo excluído com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao excluir: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao processar requisição');
+            console.error('Error:', error);
+        });
+    }
+}
+</script>
+{% endblock %}

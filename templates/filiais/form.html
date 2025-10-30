@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if filial_id else 'Nova' }} Filial - Meet Call{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <a href="{{ url_for('filiais.lista') }}" class="text-meetcall-purple hover:text-meetcall-purple-dark">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar para lista
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900 mt-4">
+            <i class="fas fa-building text-meetcall-purple mr-3"></i>
+            {{ 'Editar Filial' if filial_id else 'Nova Filial' }}
+        </h1>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <form method="POST" id="formFilial">
+            <!-- Informações Básicas -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+                    <i class="fas fa-info-circle text-meetcall-purple mr-2"></i>Informações Básicas
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            Código <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="codigo" required
+                               value="{{ filial.codigo if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-purple"
+                               placeholder="Ex: FIL001">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            Nome <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="nome" required
+                               value="{{ filial.nome if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-purple"
+                               placeholder="Ex: Filial São Paulo">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            Razão Social
+                        </label>
+                        <input type="text" name="razao_social"
+                               value="{{ filial.razao_social if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-purple"
+                               placeholder="Ex: MeetCall Tecnologia Ltda">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            CNPJ
+                        </label>
+                        <input type="text" name="cnpj" id="cnpj"
+                               value="{{ filial.cnpj if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-purple"
+                               placeholder="00.000.000/0000-00"
+                               maxlength="18">
+                        <span id="cnpj-validation" class="text-sm"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            Email
+                        </label>
+                        <input type="email" name="email"
+                               value="{{ filial.email if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-purple"
+                               placeholder="filial@meetcall.com">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">
+                            Telefone
+                        </label>
+                        <input type="text" name="telefone" id="telefone"
+                               value="{{ filial.telefone if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-purple"
+                               placeholder="(00) 0000-0000">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_matriz" 
+                                   {{ 'checked' if filial and filial.is_matriz else '' }}
+                                   class="form-checkbox h-5 w-5 text-meetcall-purple">
+                            <span class="ml-2 text-gray-700 font-medium">
+                                <i class="fas fa-star text-purple-600 mr-1"></i>Esta é a Filial Matriz
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Endereço -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
+                    <i class="fas fa-map-marker-alt text-meetcall-orange mr-2"></i>Endereço
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">CEP</label>
+                        <input type="text" name="cep" id="cep"
+                               value="{{ filial.cep if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-orange"
+                               placeholder="00000-000" maxlength="9">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Endereço</label>
+                        <input type="text" name="endereco"
+                               value="{{ filial.endereco if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-orange"
+                               placeholder="Rua, Avenida, etc">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Número</label>
+                        <input type="text" name="numero"
+                               value="{{ filial.numero if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-orange"
+                               placeholder="123">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Complemento</label>
+                        <input type="text" name="complemento"
+                               value="{{ filial.complemento if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-orange"
+                               placeholder="Sala, Andar, etc">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Bairro</label>
+                        <input type="text" name="bairro"
+                               value="{{ filial.bairro if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-orange"
+                               placeholder="Bairro">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Cidade</label>
+                        <input type="text" name="cidade"
+                               value="{{ filial.cidade if filial else '' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-orange"
+                               placeholder="Cidade">
+                    </div>
+
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Estado</label>
+                        <select name="estado"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-meetcall-orange">
+                            <option value="">Selecione...</option>
+                            {% for uf in ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
+                            <option value="{{ uf }}" {{ 'selected' if filial and filial.estado == uf else '' }}>{{ uf }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="flex justify-end gap-4">
+                <a href="{{ url_for('filiais.lista') }}" 
+                   class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark text-white rounded-lg hover:shadow-lg transition">
+                    <i class="fas fa-save mr-2"></i>{{ 'Atualizar' if filial_id else 'Salvar' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Máscara para CNPJ
+document.getElementById('cnpj').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 14) {
+        value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        value = value.replace(/(\d{4})(\d)/, '$1-$2');
+        e.target.value = value;
+        
+        // Validar CNPJ quando completo
+        if (value.replace(/\D/g, '').length === 14) {
+            validateCNPJ(value);
+        }
+    }
+});
+
+// Máscara para telefone
+document.getElementById('telefone').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 11) {
+        if (value.length <= 10) {
+            value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+            value = value.replace(/(\d{4})(\d)/, '$1-$2');
+        } else {
+            value = value.replace(/^(\d{2})(\d)/, '($1) $2');
+            value = value.replace(/(\d{5})(\d)/, '$1-$2');
+        }
+        e.target.value = value;
+    }
+});
+
+// Máscara para CEP
+document.getElementById('cep').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 8) {
+        value = value.replace(/^(\d{5})(\d)/, '$1-$2');
+        e.target.value = value;
+    }
+});
+
+// Validar CNPJ
+function validateCNPJ(cnpj) {
+    const validationSpan = document.getElementById('cnpj-validation');
+    
+    fetch('/filiais/validar-cnpj', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cnpj: cnpj })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.valido) {
+            validationSpan.innerHTML = '<i class="fas fa-check-circle text-green-600"></i> CNPJ válido';
+            validationSpan.className = 'text-sm text-green-600';
+        } else {
+            validationSpan.innerHTML = '<i class="fas fa-times-circle text-red-600"></i> CNPJ inválido';
+            validationSpan.className = 'text-sm text-red-600';
+        }
+    });
+}
+</script>
+{% endblock %}

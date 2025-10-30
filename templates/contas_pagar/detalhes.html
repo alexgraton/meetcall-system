@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes - Conta a Pagar{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Detalhes da Conta a Pagar</h1>
+        <a href="{{ url_for('contas_pagar.lista') }}" class="text-gray-600 hover:text-gray-800">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Informações Principais -->
+        <div class="col-span-2 bg-gray-50 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800">Informações Principais</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Fornecedor:</p>
+                    <p class="font-semibold">{{ conta.fornecedor_fantasia or conta.fornecedor_nome }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Status:</p>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold
+                        {% if conta.status == 'pago' %}bg-green-100 text-green-800
+                        {% elif conta.status == 'vencido' %}bg-red-100 text-red-800
+                        {% elif conta.status == 'cancelado' %}bg-gray-100 text-gray-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {{ conta.status|upper }}
+                    </span>
+                </div>
+                <div class="col-span-2">
+                    <p class="text-sm text-gray-600">Descrição:</p>
+                    <p class="font-semibold">{{ conta.descricao }}</p>
+                </div>
+                {% if conta.numero_documento %}
+                <div>
+                    <p class="text-sm text-gray-600">Número do Documento:</p>
+                    <p class="font-semibold">{{ conta.numero_documento }}</p>
+                </div>
+                {% endif %}
+                {% if conta.filial_nome %}
+                <div>
+                    <p class="text-sm text-gray-600">Filial:</p>
+                    <p class="font-semibold">{{ conta.filial_nome }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Valores -->
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800">Valores</h2>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Valor Original:</span>
+                    <span class="font-bold text-xl">R$ {{ conta.valor_total|moeda }}</span>
+                </div>
+                {% if conta.valor_multa > 0 %}
+                <div class="flex justify-between text-red-600">
+                    <span>Multa:</span>
+                    <span>R$ {{ conta.valor_multa|moeda }}</span>
+                </div>
+                {% endif %}
+                {% if conta.valor_juros > 0 %}
+                <div class="flex justify-between text-red-600">
+                    <span>Juros:</span>
+                    <span>R$ {{ conta.valor_juros|moeda }}</span>
+                </div>
+                {% endif %}
+                {% if conta.valor_desconto > 0 %}
+                <div class="flex justify-between text-green-600">
+                    <span>Desconto:</span>
+                    <span>- R$ {{ conta.valor_desconto|moeda }}</span>
+                </div>
+                {% endif %}
+                {% if conta.valor_pago > 0 %}
+                <div class="flex justify-between text-lg font-bold border-t pt-2">
+                    <span>Total Pago:</span>
+                    <span class="text-green-700">R$ {{ conta.valor_pago|moeda }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Datas -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800">Datas</h2>
+            <div class="space-y-2">
+                <div>
+                    <p class="text-sm text-gray-600">Emissão:</p>
+                    <p class="font-semibold">{{ conta.data_emissao.strftime('%d/%m/%Y') }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Vencimento:</p>
+                    <p class="font-semibold">{{ conta.data_vencimento.strftime('%d/%m/%Y') }}</p>
+                </div>
+                {% if conta.data_pagamento %}
+                <div>
+                    <p class="text-sm text-gray-600">Pagamento:</p>
+                    <p class="font-semibold text-green-700">{{ conta.data_pagamento.strftime('%d/%m/%Y') }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Classificação Contábil -->
+        <div class="col-span-2 bg-gray-50 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800">Classificação Contábil</h2>
+            <div class="grid grid-cols-3 gap-4">
+                {% if conta.tipo_servico_descricao %}
+                <div>
+                    <p class="text-sm text-gray-600">Tipo de Serviço:</p>
+                    <p class="font-semibold">{{ conta.tipo_servico_descricao }}</p>
+                </div>
+                {% endif %}
+                {% if conta.centro_custo_descricao %}
+                <div>
+                    <p class="text-sm text-gray-600">Centro de Custo:</p>
+                    <p class="font-semibold">{{ conta.centro_custo_descricao }}</p>
+                </div>
+                {% endif %}
+                {% if conta.conta_contabil_descricao %}
+                <div>
+                    <p class="text-sm text-gray-600">Conta Contábil:</p>
+                    <p class="font-semibold">{{ conta.conta_contabil_codigo }} - {{ conta.conta_contabil_descricao }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Parcelamento -->
+        {% if conta.numero_parcelas > 1 %}
+        <div class="col-span-2 bg-purple-50 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800">Parcelamento</h2>
+            <p>Esta é a parcela <strong>{{ conta.parcela_atual }}</strong> de <strong>{{ conta.numero_parcelas }}</strong></p>
+        </div>
+        {% endif %}
+
+        <!-- Encargos -->
+        {% if conta.percentual_juros > 0 or conta.percentual_multa > 0 %}
+        <div class="col-span-2 bg-yellow-50 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-4 text-gray-800">Encargos Configurados</h2>
+            <div class="grid grid-cols-2 gap-4">
+                {% if conta.percentual_multa > 0 %}
+                <div>
+                    <p class="text-sm text-gray-600">Multa por Atraso:</p>
+                    <p class="font-semibold">{{ conta.percentual_multa }}%</p>
+                </div>
+                {% endif %}
+                {% if conta.percentual_juros > 0 %}
+                <div>
+                    <p class="text-sm text-gray-600">Juros ao Dia:</p>
+                    <p class="font-semibold">{{ conta.percentual_juros }}%</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Observações -->
+        {% if conta.observacoes %}
+        <div class="col-span-2 bg-gray-50 p-4 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2 text-gray-800">Observações</h2>
+            <p class="text-gray-700">{{ conta.observacoes }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Ações -->
+    <div class="flex justify-end space-x-4 pt-6 border-t mt-6">
+        {% if conta.status in ['pendente', 'vencido'] %}
+        <a href="{{ url_for('contas_pagar.baixar', conta_id=conta.id) }}" 
+           class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition duration-300">
+            <i class="fas fa-dollar-sign mr-2"></i>Dar Baixa
+        </a>
+        {% endif %}
+        <a href="{{ url_for('contas_pagar.lista') }}" 
+           class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition duration-300">
+            Voltar
+        </a>
+    </div>
+</div>
+{% endblock %}
