@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Conciliação - {{ conciliacao.nome_arquivo }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-6">
+        <a href="{{ url_for('conciliacao.index') }}" class="text-blue-600 hover:text-blue-700 text-sm mb-2 inline-block">
+            <i class="fas fa-arrow-left mr-1"></i> Voltar
+        </a>
+        <h1 class="text-3xl font-bold text-gray-900">
+            Conciliação: {{ conciliacao.nome_arquivo }}
+        </h1>
+        <p class="text-gray-600 mt-2">
+            {{ conciliacao.banco }} - {{ conciliacao.conta_nome }} | 
+            Período: {{ conciliacao.periodo_inicio.strftime('%d/%m/%Y') }} a {{ conciliacao.periodo_fim.strftime('%d/%m/%Y') }}
+        </p>
+    </div>
+
+    <!-- Resumo -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <div class="text-sm text-gray-600">Total de Transações</div>
+            <div class="text-2xl font-bold">{{ conciliacao.total_transacoes }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+            <div class="text-sm text-gray-600">Conciliadas</div>
+            <div class="text-2xl font-bold text-green-600">{{ conciliacao.total_conciliadas }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-orange-500">
+            <div class="text-sm text-gray-600">Pendentes</div>
+            <div class="text-2xl font-bold text-orange-600">{{ conciliacao.total_pendentes }}</div>
+        </div>
+    </div>
+
+    <!-- Transações -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-4 bg-gray-50 border-b">
+            <h2 class="font-semibold text-gray-900">Transações do Extrato</h2>
+        </div>
+        <div class="divide-y">
+            {% for trans in conciliacao.transacoes %}
+            <div class="p-4 {% if trans.status_conciliacao == 'conciliada' %}bg-green-50{% endif %}">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-semibold">{{ trans.data_transacao.strftime('%d/%m/%Y') }}</span>
+                            <span class="px-2 py-0.5 text-xs rounded {% if trans.tipo == 'credito' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ 'Crédito' if trans.tipo == 'credito' else 'Débito' }}
+                            </span>
+                            {% if trans.status_conciliacao == 'conciliada' %}
+                            <span class="px-2 py-0.5 text-xs rounded bg-green-500 text-white">
+                                <i class="fas fa-check mr-1"></i>Conciliada
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="text-gray-700">{{ trans.descricao }}</div>
+                        {% if trans.documento %}
+                        <div class="text-sm text-gray-500">Doc: {{ trans.documento }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="text-right ml-4">
+                        <div class="text-lg font-semibold {% if trans.tipo == 'credito' %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ trans.valor | moeda }}
+                        </div>
+                    </div>
+                </div>
+
+                {% if trans.status_conciliacao == 'pendente' %}
+                    {% set matches = matches_por_transacao.get(trans.id, []) %}
+                    {% if matches %}
+                    <div class="mt-3 border-t pt-3">
+                        <div class="text-sm font-semibold text-gray-700 mb-2">Sugestões de conciliação:</div>
+                        {% for match in matches[:3] %}
+                        <form method="POST" action="{{ url_for('conciliacao.conciliar') }}" class="mb-2">
+                            <input type="hidden" name="transacao_extrato_id" value="{{ trans.id }}">
+                            <input type="hidden" name="tipo_transacao" value="{{ match.transacao_sistema_tipo }}">
+                            <input type="hidden" name="transacao_id" value="{{ match.transacao_sistema_id }}">
+                            <input type="hidden" name="conciliacao_id" value="{{ conciliacao.id }}">
+                            
+                            <div class="flex items-center justify-between bg-blue-50 p-3 rounded border border-blue-200">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2 py-0.5 text-xs bg-blue-600 text-white rounded">{{ match.similaridade }}% match</span>
+                                        <span class="text-sm font-medium">{{ match.transacao_sistema.descricao }}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        {{ match.transacao_sistema.data_transacao.strftime('%d/%m/%Y') }} - 
+                                        {{ match.transacao_sistema.valor | moeda }}
+                                    </div>
+                                </div>
+                                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm">
+                                    <i class="fas fa-link mr-1"></i>Conciliar
+                                </button>
+                            </div>
+                        </form>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="mt-3 text-sm text-gray-500 italic">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        Nenhuma correspondência automática encontrada
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <form method="POST" action="{{ url_for('conciliacao.desconciliar') }}" class="mt-3">
+                        <input type="hidden" name="transacao_extrato_id" value="{{ trans.id }}">
+                        <input type="hidden" name="conciliacao_id" value="{{ conciliacao.id }}">
+                        <button type="submit" class="text-sm text-red-600 hover:text-red-700">
+                            <i class="fas fa-unlink mr-1"></i>Desconciliar
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

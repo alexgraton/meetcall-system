@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}{% if conta %}Editar{% else %}Nova{% endif %} Conta Bancária - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">{% if conta %}Editar{% else %}Nova{% endif %} Conta Bancária</h1>
+        <a href="{{ url_for('contas_bancarias.lista') }}" class="text-gray-600 hover:text-gray-800">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="space-y-6">
+        <!-- Banco e Tipo -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Banco: <span class="text-red-500">*</span></label>
+                <input type="text" name="banco" required value="{{ conta.banco if conta else '' }}" 
+                       placeholder="Ex: Banco do Brasil, Itaú, Bradesco..." 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Conta: <span class="text-red-500">*</span></label>
+                <select name="tipo_conta" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="corrente" {% if conta and conta.tipo_conta == 'corrente' %}selected{% endif %}>Conta Corrente</option>
+                    <option value="poupanca" {% if conta and conta.tipo_conta == 'poupanca' %}selected{% endif %}>Poupança</option>
+                    <option value="caixa" {% if conta and conta.tipo_conta == 'caixa' %}selected{% endif %}>Caixa</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Agência e Conta -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Agência: <span class="text-red-500">*</span></label>
+                <input type="text" name="agencia" required value="{{ conta.agencia if conta else '' }}" 
+                       placeholder="Ex: 1234-5" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Número da Conta: <span class="text-red-500">*</span></label>
+                <input type="text" name="numero_conta" required value="{{ conta.numero_conta if conta else '' }}" 
+                       placeholder="Ex: 12345-6" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+        </div>
+
+        <!-- Descrição -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Descrição:</label>
+            <input type="text" name="descricao" value="{{ conta.descricao if conta else '' }}" 
+                   placeholder="Ex: Conta principal da matriz" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+        </div>
+
+        <!-- Saldo Inicial e Moeda -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% if not conta %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Saldo Inicial: <span class="text-red-500">*</span></label>
+                <input type="number" name="saldo_inicial" required step="0.01" value="0.00" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                <p class="text-xs text-gray-500 mt-1">Saldo no momento da abertura da conta no sistema</p>
+            </div>
+            {% else %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Saldo Atual:</label>
+                <input type="text" value="R$ {{ conta.saldo_atual|moeda }}" disabled 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100">
+                <p class="text-xs text-gray-500 mt-1">O saldo não pode ser editado aqui. Use a página de detalhes para ajustes.</p>
+            </div>
+            {% endif %}
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Moeda:</label>
+                <select name="moeda" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="BRL" {% if conta and conta.moeda == 'BRL' %}selected{% endif %}>BRL - Real Brasileiro</option>
+                    <option value="USD" {% if conta and conta.moeda == 'USD' %}selected{% endif %}>USD - Dólar Americano</option>
+                    <option value="EUR" {% if conta and conta.moeda == 'EUR' %}selected{% endif %}>EUR - Euro</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Filial -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Filial:</label>
+            <select name="filial_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                <option value="">Nenhuma (Geral)</option>
+                {% for filial in filiais %}
+                    <option value="{{ filial.id }}" {% if conta and conta.filial_id == filial.id %}selected{% endif %}>{{ filial.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Status (só na edição) -->
+        {% if conta %}
+        <div>
+            <label class="flex items-center">
+                <input type="checkbox" name="ativo" value="1" {% if conta.ativo %}checked{% endif %} 
+                       class="mr-2 h-4 w-4 text-meetcall-purple focus:ring-meetcall-purple border-gray-300 rounded">
+                <span class="text-sm font-medium text-gray-700">Conta ativa</span>
+            </label>
+        </div>
+        {% endif %}
+
+        <!-- Botões -->
+        <div class="flex justify-end space-x-2">
+            <a href="{{ url_for('contas_bancarias.lista') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Cancelar</a>
+            <button type="submit" class="px-4 py-2 bg-meetcall-purple text-white rounded-lg hover:bg-purple-700">
+                <i class="fas fa-save mr-2"></i>Salvar
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

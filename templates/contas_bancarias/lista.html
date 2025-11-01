@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Contas Bancárias - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Contas Bancárias</h1>
+        <a href="{{ url_for('contas_bancarias.nova') }}" class="bg-meetcall-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
+            <i class="fas fa-plus mr-2"></i>
+            Nova Conta
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Totalizadores -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-university text-blue-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Total de Contas</p>
+                    <p class="text-xl font-bold text-blue-700">{{ totalizadores.total_contas }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-money-bill-wave text-green-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Saldo Total</p>
+                    <p class="text-xl font-bold text-green-700">R$ {{ totalizadores.saldo_total|moeda }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-credit-card text-purple-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Conta Corrente</p>
+                    <p class="text-xl font-bold text-purple-700">R$ {{ totalizadores.saldo_corrente|moeda }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <div class="flex items-center">
+                <i class="fas fa-piggy-bank text-yellow-600 text-2xl mr-3"></i>
+                <div>
+                    <p class="text-sm text-gray-600">Poupança</p>
+                    <p class="text-xl font-bold text-yellow-700">R$ {{ totalizadores.saldo_poupanca|moeda }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Filial:</label>
+                <select name="filial_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Todas</option>
+                    {% for filial in filiais %}
+                        <option value="{{ filial.id }}" {% if filtros.filial_id == filial.id %}selected{% endif %}>{{ filial.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Conta:</label>
+                <select name="tipo_conta" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Todos</option>
+                    <option value="corrente" {% if filtros.tipo_conta == 'corrente' %}selected{% endif %}>Conta Corrente</option>
+                    <option value="poupanca" {% if filtros.tipo_conta == 'poupanca' %}selected{% endif %}>Poupança</option>
+                    <option value="caixa" {% if filtros.tipo_conta == 'caixa' %}selected{% endif %}>Caixa</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status:</label>
+                <select name="ativo" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Todos</option>
+                    <option value="1" {% if filtros.ativo %}selected{% endif %}>Ativos</option>
+                    <option value="0" {% if filtros.ativo == False %}selected{% endif %}>Inativos</option>
+                </select>
+            </div>
+            <div class="md:col-span-3 flex justify-end space-x-2">
+                <a href="{{ url_for('contas_bancarias.lista') }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">Limpar</a>
+                <button type="submit" class="px-4 py-2 bg-meetcall-purple text-white rounded-lg hover:bg-purple-700">Filtrar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Banco/Conta</th>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Tipo</th>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Filial</th>
+                    <th class="px-4 py-2 text-right text-xs font-semibold text-gray-700 uppercase">Saldo Inicial</th>
+                    <th class="px-4 py-2 text-right text-xs font-semibold text-gray-700 uppercase">Saldo Atual</th>
+                    <th class="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Status</th>
+                    <th class="px-4 py-2 text-center text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conta in contas %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2">
+                        <div class="font-semibold">{{ conta.banco }}</div>
+                        <div class="text-sm text-gray-500">Ag: {{ conta.agencia }} | Conta: {{ conta.numero_conta }}</div>
+                        {% if conta.descricao %}
+                            <div class="text-xs text-gray-400">{{ conta.descricao }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold
+                            {% if conta.tipo_conta == 'corrente' %}bg-blue-100 text-blue-800
+                            {% elif conta.tipo_conta == 'poupanca' %}bg-green-100 text-green-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ conta.tipo_conta|title }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        {% if conta.filial_nome %}
+                            <span class="text-sm">{{ conta.filial_nome }}</span>
+                        {% else %}
+                            <span class="text-gray-400">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 text-right">
+                        <span class="text-gray-600">R$ {{ conta.saldo_inicial|moeda }}</span>
+                    </td>
+                    <td class="px-4 py-2 text-right">
+                        <span class="font-bold text-lg {% if conta.saldo_atual >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            R$ {{ conta.saldo_atual|moeda }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2 text-center">
+                        <span class="px-2 py-1 rounded-full text-xs {% if conta.ativo %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                            {% if conta.ativo %}Ativa{% else %}Inativa{% endif %}
+                        </span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="flex justify-center space-x-2">
+                            <a href="{{ url_for('contas_bancarias.detalhes', conta_id=conta.id) }}" 
+                               class="text-blue-600 hover:text-blue-800" title="Detalhes">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ url_for('contas_bancarias.editar', conta_id=conta.id) }}" 
+                               class="text-green-600 hover:text-green-800" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if conta.ativo %}
+                            <button onclick="excluirConta({{ conta.id }})" 
+                                    class="text-red-600 hover:text-red-800" title="Desativar">
+                                <i class="fas fa-ban"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                        Nenhuma conta bancária encontrada.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function excluirConta(contaId) {
+    if (confirm('Tem certeza que deseja desativar esta conta bancária?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/contas_bancarias/${contaId}/excluir`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

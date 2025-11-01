@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}DRE - Demonstrativo do Resultado do Exercício{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-file-invoice-dollar mr-3 text-blue-600"></i>
+                    DRE - Demonstrativo do Resultado do Exercício
+                </h1>
+                <p class="mt-2 text-gray-600">Período: {{ data_inicio | date_format }} a {{ data_fim | date_format }}</p>
+            </div>
+            <a href="{{ url_for('relatorios.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtro de Período -->
+    <div class="bg-white rounded-lg shadow mb-6 p-4">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
+                <input type="date" name="data_inicio" value="{{ data_inicio }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
+                <input type="date" name="data_fim" value="{{ data_fim }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                <i class="fas fa-search mr-2"></i>Filtrar
+            </button>
+        </form>
+    </div>
+
+    <!-- Demonstrativo -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="p-6">
+            
+            <!-- 1. RECEITAS OPERACIONAIS -->
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-3 border-b-2 border-gray-200 pb-2">
+                    RECEITAS OPERACIONAIS
+                </h3>
+                <div class="space-y-2 ml-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Vendas e Serviços</span>
+                        <span class="font-mono text-green-600">{{ dre.receitas_operacionais.vendas_servicos | moeda }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Outras Receitas Operacionais</span>
+                        <span class="font-mono text-green-600">{{ dre.receitas_operacionais.outras_receitas | moeda }}</span>
+                    </div>
+                    <div class="flex justify-between items-center font-semibold border-t pt-2">
+                        <span class="text-gray-900">Total das Receitas Operacionais</span>
+                        <span class="font-mono text-green-600">{{ dre.receitas_operacionais.total | moeda }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. DEDUÇÕES DA RECEITA -->
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-3 border-b-2 border-gray-200 pb-2">
+                    (-) DEDUÇÕES DA RECEITA
+                </h3>
+                <div class="space-y-2 ml-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Descontos Concedidos</span>
+                        <span class="font-mono text-red-600">({{ dre.deducoes_receita.descontos | moeda }})</span>
+                    </div>
+                    <div class="flex justify-between items-center font-semibold border-t pt-2">
+                        <span class="text-gray-900">Total das Deduções</span>
+                        <span class="font-mono text-red-600">({{ dre.deducoes_receita.total | moeda }})</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. RECEITA LÍQUIDA -->
+            <div class="mb-6 bg-blue-50 p-4 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-gray-900">= RECEITA LÍQUIDA</span>
+                    <span class="text-xl font-mono font-bold text-blue-600">{{ dre.receita_liquida | moeda }}</span>
+                </div>
+            </div>
+
+            <!-- 4. CUSTOS OPERACIONAIS -->
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-3 border-b-2 border-gray-200 pb-2">
+                    (-) CUSTOS OPERACIONAIS
+                </h3>
+                <div class="space-y-2 ml-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Custos dos Serviços</span>
+                        <span class="font-mono text-red-600">({{ dre.custos_operacionais.custos_servicos | moeda }})</span>
+                    </div>
+                    <div class="flex justify-between items-center font-semibold border-t pt-2">
+                        <span class="text-gray-900">Total dos Custos</span>
+                        <span class="font-mono text-red-600">({{ dre.custos_operacionais.total | moeda }})</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. LUCRO BRUTO -->
+            <div class="mb-6 bg-green-50 p-4 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-gray-900">= LUCRO BRUTO</span>
+                    <span class="text-xl font-mono font-bold {% if dre.lucro_bruto >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ dre.lucro_bruto | moeda }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 6. DESPESAS OPERACIONAIS -->
+            <div class="mb-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-3 border-b-2 border-gray-200 pb-2">
+                    (-) DESPESAS OPERACIONAIS
+                </h3>
+                <div class="space-y-2 ml-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Despesas Administrativas</span>
+                        <span class="font-mono text-red-600">({{ dre.despesas_operacionais.administrativas | moeda }})</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Despesas Comerciais</span>
+                        <span class="font-mono text-red-600">({{ dre.despesas_operacionais.comerciais | moeda }})</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Despesas Financeiras</span>
+                        <span class="font-mono text-red-600">({{ dre.despesas_operacionais.financeiras | moeda }})</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-700">Outras Despesas</span>
+                        <span class="font-mono text-red-600">({{ dre.despesas_operacionais.outras | moeda }})</span>
+                    </div>
+                    <div class="flex justify-between items-center font-semibold border-t pt-2">
+                        <span class="text-gray-900">Total das Despesas</span>
+                        <span class="font-mono text-red-600">({{ dre.despesas_operacionais.total | moeda }})</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. RESULTADO OPERACIONAL -->
+            <div class="mb-6 bg-purple-50 p-4 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-gray-900">= RESULTADO OPERACIONAL</span>
+                    <span class="text-xl font-mono font-bold {% if dre.resultado_operacional >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ dre.resultado_operacional | moeda }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 8. OUTRAS RECEITAS/DESPESAS -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center ml-4">
+                    <span class="text-gray-700">(+/-) Outras Receitas e Despesas</span>
+                    <span class="font-mono {% if dre.outras_receitas_despesas >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ dre.outras_receitas_despesas | moeda }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 9. RESULTADO ANTES DOS IMPOSTOS -->
+            <div class="mb-6 bg-yellow-50 p-4 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-bold text-gray-900">= RESULTADO ANTES DOS IMPOSTOS</span>
+                    <span class="text-xl font-mono font-bold {% if dre.resultado_antes_impostos >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {{ dre.resultado_antes_impostos | moeda }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- 10. IMPOSTOS -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center ml-4">
+                    <span class="text-gray-700">(-) Impostos sobre o Lucro</span>
+                    <span class="font-mono text-red-600">({{ dre.impostos | moeda }})</span>
+                </div>
+            </div>
+
+            <!-- 11. LUCRO LÍQUIDO -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-2xl font-bold text-white">= LUCRO LÍQUIDO DO PERÍODO</span>
+                    <span class="text-3xl font-mono font-bold text-white">
+                        {{ dre.lucro_liquido | moeda }}
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Indicadores -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+            <div class="text-sm text-gray-600">Margem Bruta</div>
+            <div class="text-2xl font-bold text-gray-900">
+                {% if dre.receita_liquida > 0 %}
+                    {{ ((dre.lucro_bruto / dre.receita_liquida) * 100) | round(2) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <div class="text-sm text-gray-600">Margem Operacional</div>
+            <div class="text-2xl font-bold text-gray-900">
+                {% if dre.receita_liquida > 0 %}
+                    {{ ((dre.resultado_operacional / dre.receita_liquida) * 100) | round(2) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+            <div class="text-sm text-gray-600">Margem Líquida</div>
+            <div class="text-2xl font-bold text-gray-900">
+                {% if dre.receita_liquida > 0 %}
+                    {{ ((dre.lucro_liquido / dre.receita_liquida) * 100) | round(2) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

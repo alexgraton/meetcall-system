@@ -96,6 +96,19 @@
                             </button>
                             <div class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg hidden group-hover:block z-50">
                                 <div class="py-1">
+                                    <a href="{{ url_for('dashboard.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-tachometer-alt mr-2 w-4"></i>Dashboard Financeiro
+                                    </a>
+                                    <a href="{{ url_for('fluxo_caixa.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-chart-area mr-2 w-4"></i>Fluxo de Caixa
+                                    </a>
+                                    <a href="{{ url_for('relatorios.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-file-alt mr-2 w-4"></i>Relatórios Financeiros
+                                    </a>
+                                    <a href="{{ url_for('conciliacao.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-check-double mr-2 w-4"></i>Conciliação Bancária
+                                    </a>
+                                    <div class="border-t border-gray-100 my-1"></div>
                                     <a href="{{ url_for('contas_pagar.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-file-invoice-dollar mr-2 w-4"></i>Contas a Pagar
                                     </a>
@@ -104,6 +117,9 @@
                                     </a>
                                     <a href="{{ url_for('lancamentos.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-cash-register mr-2 w-4"></i>Lançamentos Manuais
+                                    </a>
+                                    <a href="{{ url_for('contas_bancarias.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-university mr-2 w-4"></i>Contas Bancárias
                                     </a>
                                     <div class="border-t border-gray-100 my-1"></div>
                                     <a href="{{ url_for('plano_contas.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
@@ -181,6 +197,18 @@
                 <!-- Seção Financeiro -->
                 <div class="border-t border-purple-400 pt-2 mt-2">
                     <div class="text-purple-200 text-xs uppercase px-3 py-1 font-semibold">Financeiro</div>
+                    <a href="{{ url_for('dashboard.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-tachometer-alt mr-2 ml-2"></i>Dashboard Financeiro
+                    </a>
+                    <a href="{{ url_for('fluxo_caixa.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-chart-area mr-2 ml-2"></i>Fluxo de Caixa
+                    </a>
+                    <a href="{{ url_for('relatorios.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-file-alt mr-2 ml-2"></i>Relatórios Financeiros
+                    </a>
+                    <a href="{{ url_for('conciliacao.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-check-double mr-2 ml-2"></i>Conciliação Bancária
+                    </a>
                     <a href="{{ url_for('contas_pagar.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-file-invoice-dollar mr-2 ml-2"></i>Contas a Pagar
                     </a>
@@ -189,6 +217,9 @@
                     </a>
                     <a href="{{ url_for('lancamentos.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-cash-register mr-2 ml-2"></i>Lançamentos Manuais
+                    </a>
+                    <a href="{{ url_for('contas_bancarias.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-university mr-2 ml-2"></i>Contas Bancárias
                     </a>
                     <a href="{{ url_for('plano_contas.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-chart-line mr-2 ml-2"></i>Plano de Contas

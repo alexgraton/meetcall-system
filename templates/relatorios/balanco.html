@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Balanço Patrimonial{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-balance-scale mr-3 text-green-600"></i>
+                    Balanço Patrimonial
+                </h1>
+                <p class="mt-2 text-gray-600">Data de Referência: {{ data_referencia | date_format }}</p>
+            </div>
+            <a href="{{ url_for('relatorios.index') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtro de Data -->
+    <div class="bg-white rounded-lg shadow mb-6 p-4">
+        <form method="GET" class="flex gap-4 items-end">
+            <div class="flex-1 max-w-xs">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data de Referência</label>
+                <input type="date" name="data_referencia" value="{{ data_referencia }}" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+            </div>
+            <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors">
+                <i class="fas fa-search mr-2"></i>Atualizar
+            </button>
+        </form>
+    </div>
+
+    <!-- Balanço -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- ATIVO -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-green-600 text-white p-4">
+                <h2 class="text-xl font-bold">ATIVO</h2>
+            </div>
+            <div class="p-6">
+                
+                <!-- Ativo Circulante -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-3 border-b-2 border-gray-200 pb-2">
+                        ATIVO CIRCULANTE
+                    </h3>
+                    <div class="space-y-2 ml-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Caixa e Equivalentes</span>
+                            <span class="font-mono text-green-600">{{ balanco.ativo.circulante.caixa_bancos | moeda }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Contas a Receber</span>
+                            <span class="font-mono text-green-600">{{ balanco.ativo.circulante.contas_receber | moeda }}</span>
+                        </div>
+                        <div class="flex justify-between items-center font-semibold border-t pt-2 mt-2">
+                            <span class="text-gray-900">Total do Ativo Circulante</span>
+                            <span class="font-mono text-green-700">{{ balanco.ativo.circulante.total | moeda }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total do Ativo -->
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-bold text-gray-900">TOTAL DO ATIVO</span>
+                        <span class="text-2xl font-mono font-bold text-green-600">{{ balanco.ativo.total | moeda }}</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- PASSIVO + PATRIMÔNIO LÍQUIDO -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-blue-600 text-white p-4">
+                <h2 class="text-xl font-bold">PASSIVO + PATRIMÔNIO LÍQUIDO</h2>
+            </div>
+            <div class="p-6">
+                
+                <!-- Passivo Circulante -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-3 border-b-2 border-gray-200 pb-2">
+                        PASSIVO CIRCULANTE
+                    </h3>
+                    <div class="space-y-2 ml-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Contas a Pagar</span>
+                            <span class="font-mono text-red-600">{{ balanco.passivo.circulante.contas_pagar | moeda }}</span>
+                        </div>
+                        <div class="flex justify-between items-center font-semibold border-t pt-2 mt-2">
+                            <span class="text-gray-900">Total do Passivo Circulante</span>
+                            <span class="font-mono text-red-700">{{ balanco.passivo.circulante.total | moeda }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total do Passivo -->
+                <div class="bg-red-50 p-4 rounded-lg mb-6">
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-bold text-gray-900">Total do Passivo</span>
+                        <span class="text-xl font-mono font-bold text-red-600">{{ balanco.passivo.total | moeda }}</span>
+                    </div>
+                </div>
+
+                <!-- Patrimônio Líquido -->
+                <div class="mb-4">
+                    <h3 class="text-lg font-bold text-gray-900 mb-3 border-b-2 border-gray-200 pb-2">
+                        PATRIMÔNIO LÍQUIDO
+                    </h3>
+                    <div class="space-y-2 ml-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Capital Social</span>
+                            <span class="font-mono text-blue-600">{{ balanco.patrimonio_liquido.capital_social | moeda }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Lucros/Prejuízos Acumulados</span>
+                            <span class="font-mono {% if balanco.patrimonio_liquido.lucros_acumulados >= 0 %}text-blue-600{% else %}text-red-600{% endif %}">
+                                {{ balanco.patrimonio_liquido.lucros_acumulados | moeda }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center font-semibold border-t pt-2 mt-2">
+                            <span class="text-gray-900">Total do Patrimônio Líquido</span>
+                            <span class="font-mono font-bold {% if balanco.patrimonio_liquido.total >= 0 %}text-blue-700{% else %}text-red-700{% endif %}">
+                                {{ balanco.patrimonio_liquido.total | moeda }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total do Passivo + PL -->
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-bold text-gray-900">TOTAL PASSIVO + PL</span>
+                        <span class="text-2xl font-mono font-bold text-blue-600">
+                            {{ (balanco.passivo.total + balanco.patrimonio_liquido.total) | moeda }}
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Indicadores -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+            <div class="text-sm text-gray-600">Liquidez Corrente</div>
+            <div class="text-2xl font-bold text-gray-900">
+                {% if balanco.passivo.circulante.total > 0 %}
+                    {{ (balanco.ativo.circulante.total / balanco.passivo.circulante.total) | round(2) }}
+                {% else %}
+                    ∞
+                {% endif %}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">Ativo Circ. / Passivo Circ.</div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
+            <div class="text-sm text-gray-600">Endividamento</div>
+            <div class="text-2xl font-bold text-gray-900">
+                {% if balanco.ativo.total > 0 %}
+                    {{ ((balanco.passivo.total / balanco.ativo.total) * 100) | round(2) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">Passivo / Ativo</div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+            <div class="text-sm text-gray-600">Composição do Endividamento</div>
+            <div class="text-2xl font-bold text-gray-900">
+                {% if balanco.passivo.total > 0 %}
+                    {{ ((balanco.passivo.circulante.total / balanco.passivo.total) * 100) | round(2) }}%
+                {% else %}
+                    0%
+                {% endif %}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">Passivo Circ. / Passivo Total</div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4 border-l-4 {% if balanco.patrimonio_liquido.total >= 0 %}border-green-500{% else %}border-red-500{% endif %}">
+            <div class="text-sm text-gray-600">Situação Patrimonial</div>
+            <div class="text-lg font-bold {% if balanco.patrimonio_liquido.total >= 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {% if balanco.patrimonio_liquido.total >= 0 %}
+                    Positiva
+                {% else %}
+                    Negativa
+                {% endif %}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">PL {{ balanco.patrimonio_liquido.total | moeda }}</div>
+        </div>
+    </div>
+
+    <!-- Informação -->
+    <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-400"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Nota:</strong> O Patrimônio Líquido é calculado como a diferença entre Ativo e Passivo (equação fundamental da contabilidade).
+                    Valores positivos indicam situação patrimonial favorável.
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

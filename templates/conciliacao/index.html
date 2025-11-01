@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Conciliação Bancária{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+            <i class="fas fa-check-double mr-3 text-meetcall-purple"></i>
+            Conciliação Bancária
+        </h1>
+        <p class="mt-2 text-gray-600">Importe extratos e concilie transações automaticamente</p>
+    </div>
+
+    <!-- Upload de Extrato -->
+    <div class="bg-white rounded-lg shadow mb-8 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">
+            <i class="fas fa-upload mr-2 text-blue-600"></i>
+            Importar Extrato Bancário
+        </h2>
+        
+        <form action="{{ url_for('conciliacao.upload') }}" method="POST" enctype="multipart/form-data">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Conta Bancária *</label>
+                    <select name="conta_bancaria_id" required
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Selecione uma conta...</option>
+                        {% for conta in contas %}
+                        <option value="{{ conta.id }}">
+                            {{ conta.banco }} - Ag: {{ conta.agencia }} / Conta: {{ conta.conta }} - {{ conta.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Arquivo do Extrato (CSV) *</label>
+                    <input type="file" name="arquivo" accept=".csv,.txt" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <p class="text-xs text-gray-500 mt-1">Formatos aceitos: CSV ou TXT delimitado</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Delimitador</label>
+                    <select name="delimiter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value=";">Ponto e vírgula (;)</option>
+                        <option value=",">Vírgula (,)</option>
+                        <option value="|">Pipe (|)</option>
+                        <option value="	">Tab</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Codificação</label>
+                    <select name="encoding" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="utf-8">UTF-8</option>
+                        <option value="latin1">Latin-1 (ISO-8859-1)</option>
+                        <option value="cp1252">Windows-1252</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors">
+                    <i class="fas fa-cloud-upload-alt mr-2"></i>
+                    Importar e Iniciar Conciliação
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Últimas Conciliações -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-history mr-2 text-green-600"></i>
+                    Últimas Conciliações
+                </h2>
+                <a href="{{ url_for('conciliacao.historico') }}" class="text-blue-600 hover:text-blue-700 text-sm">
+                    Ver todas <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Conta</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Arquivo</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Período</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Transações</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for conc in conciliacoes %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ conc.data_importacao.strftime('%d/%m/%Y %H:%M') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ conc.banco }} - {{ conc.conta_nome }}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            <i class="fas fa-file-csv mr-1 text-green-600"></i>
+                            {{ conc.nome_arquivo }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                            {{ conc.periodo_inicio.strftime('%d/%m/%Y') if conc.periodo_inicio else '-' }}
+                            a
+                            {{ conc.periodo_fim.strftime('%d/%m/%Y') if conc.periodo_fim else '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                            <span class="text-green-600 font-semibold">{{ conc.total_conciliadas }}</span>
+                            /
+                            <span class="text-gray-600">{{ conc.total_transacoes }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            {% if conc.total_pendentes == 0 %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                    Completa
+                                </span>
+                            {% elif conc.total_conciliadas > 0 %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Parcial
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    Pendente
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                            <a href="{{ url_for('conciliacao.matching', conciliacao_id=conc.id) }}"
+                               class="text-blue-600 hover:text-blue-700 mr-3" title="Conciliar">
+                                <i class="fas fa-tasks"></i>
+                            </a>
+                            <a href="{{ url_for('conciliacao.detalhes', conciliacao_id=conc.id) }}"
+                               class="text-gray-600 hover:text-gray-700" title="Detalhes">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-2"></i>
+                            <p>Nenhuma conciliação realizada ainda.</p>
+                            <p class="text-sm">Importe seu primeiro extrato acima para começar.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Informações -->
+    <div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
+        <div class="flex">
+            <i class="fas fa-info-circle text-blue-400 mt-1"></i>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Como funciona</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <ol class="list-decimal list-inside space-y-1">
+                        <li>Exporte o extrato bancário em formato CSV do site do seu banco</li>
+                        <li>Selecione a conta bancária correspondente e faça o upload do arquivo</li>
+                        <li>O sistema identificará automaticamente transações compatíveis</li>
+                        <li>Revise e confirme as conciliações sugeridas</li>
+                        <li>Transações não encontradas podem ser ignoradas ou vinculadas manualmente</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

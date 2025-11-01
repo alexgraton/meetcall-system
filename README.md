@@ -1,15 +1,51 @@
-# 🟣🟠 Meet Call - Sistema de Gerenciamento
+# 🟣🟠 MeetCall System - Sistema de Gestão Empresarial
 
-Sistema web desenvolvido em **Python Flask** com **Tailwind CSS** para gerenciamento de chamadas e indicadores.
+Sistema web completo desenvolvido em **Python Flask** com **Tailwind CSS** para gestão empresarial integrada.
 
 ## 🎨 Características
 
-- ✅ **Tela de Login** com logo e cores da empresa (roxo e laranja)
-- 📊 **Dashboard** com indicadores estilo PowerBI
-- 📈 **Gráficos interativos** com Chart.js
-- 📱 **Design responsivo** com Tailwind CSS
-- 🔐 **Sistema de autenticação** com sessions
-- 🎯 **Menu lateral** com navegação completa
+- ✅ **Sistema de Autenticação** com login seguro e controle de sessão
+- 📊 **Dashboard Interativo** com indicadores estilo PowerBI
+- 📈 **Gráficos Dinâmicos** com Chart.js
+- 📱 **Design Responsivo** com Tailwind CSS 3.x
+- 🎯 **Menu de Navegação** lateral com organização por módulos
+- � **Gestão Completa** de clientes, fornecedores e produtos
+- 💰 **Controle Financeiro** avançado com relatórios gerenciais
+- 🏦 **Conciliação Bancária** automática com matching inteligente
+- 📧 **Notificações por Email** com alertas automáticos
+
+## 📦 Módulos Implementados
+
+### 1. Cadastros
+- **Clientes**: CNPJ/CPF, contatos, endereços
+- **Fornecedores**: Gestão completa de parceiros
+- **Produtos**: Catálogo com categorias e preços
+- **Usuários**: Controle de acesso ao sistema
+
+### 2. Financeiro
+- **Contas a Pagar**: Controle de despesas com fornecedores
+- **Contas a Receber**: Gestão de recebíveis de clientes
+- **Lançamentos Manuais**: Ajustes e movimentações diversas
+- **Contas Bancárias**: Múltiplas contas com saldo em tempo real
+
+### 3. Relatórios Financeiros
+- **DRE** (Demonstração do Resultado do Exercício): Análise de receitas, despesas e lucro líquido
+- **Balanço Patrimonial**: Ativos, passivos e patrimônio líquido com indicadores
+- **DFC** (Demonstração de Fluxo de Caixa): Método direto com análise de atividades
+- **Análise Horizontal**: Comparação entre períodos com variação percentual
+- **Análise Vertical**: Composição percentual com gráficos
+
+### 4. Conciliação Bancária
+- **Import CSV**: Parser automático para extratos bancários (Bradesco, Itaú, genérico)
+- **Matching Inteligente**: Algoritmo fuzzy com similaridade de 60%+
+- **Reconciliação**: Vinculação automática de transações bancárias
+- **Histórico**: Acompanhamento de conciliações realizadas
+
+### 5. Notificações
+- **Alertas de Vencimento**: Email automático para contas vencendo em N dias
+- **Alertas de Saldo Baixo**: Notificação quando conta bancária < limite
+- **Emails HTML**: Templates responsivos com tabelas formatadas
+- **Agendamento**: Suporte para execução automática via cron/Task Scheduler
 
 ## 🚀 Como Executar
 
@@ -111,68 +147,187 @@ meetcall-system/
 ├── init_database.py           # Script para inicializar o banco
 ├── requirements.txt            # Dependências Python
 ├── .env.example               # Exemplo de configuração
+├── enviar_alertas.py          # Script de notificações por email
 ├── README.md                   # Este arquivo
+│
+├── migrations/                 # Migrações do banco de dados
+│   ├── 001_initial_schema.py
+│   ├── 002_cadastros.py
+│   ├── 003_financeiro.py
+│   ├── 004_lancamentos.py
+│   ├── 005_contas_bancarias.py
+│   └── 006_conciliacao_bancaria.py
+│
+├── models/                     # Modelos de negócio
+│   ├── relatorios.py          # Relatórios financeiros (DRE, Balanço, DFC)
+│   └── conciliacao.py         # Conciliação bancária
+│
+├── routes/                     # Rotas/Controllers
+│   ├── auth.py                # Autenticação
+│   ├── clientes.py            # CRUD clientes
+│   ├── fornecedores.py        # CRUD fornecedores
+│   ├── produtos.py            # CRUD produtos
+│   ├── contas_pagar.py        # Contas a pagar
+│   ├── contas_receber.py      # Contas a receber
+│   ├── lancamentos.py         # Lançamentos manuais
+│   ├── contas_bancarias.py    # Contas bancárias
+│   ├── relatorios.py          # Relatórios gerenciais
+│   └── conciliacao.py         # Conciliação bancária
+│
+├── utils/                      # Utilitários
+│   ├── csv_parser.py          # Parser de extratos CSV
+│   └── notificacoes.py        # Sistema de notificações
 │
 ├── templates/                  # Templates HTML
 │   ├── base.html              # Template base (navbar, footer)
 │   ├── login.html             # Tela de login
 │   ├── dashboard.html         # Dashboard com indicadores
-│   ├── cadastros.html         # Página de cadastros
-│   ├── configuracoes.html     # Configurações do sistema
-│   └── perfil.html            # Perfil do usuário
+│   ├── cadastros/             # Páginas de cadastros
+│   ├── financeiro/            # Páginas financeiras
+│   ├── relatorios/            # Relatórios gerenciais
+│   └── conciliacao/           # Conciliação bancária
 │
-└── static/                     # Arquivos estáticos
-    ├── css/                   # Estilos customizados
-    ├── js/                    # Scripts JavaScript
-    └── images/                # Imagens e logos
+├── docs/                       # Documentação
+│   └── NOTIFICACOES.md        # Manual do sistema de notificações
+│
+└── uploads/                    # Arquivos enviados
+    └── extratos/              # Extratos bancários CSV
 ```
-
-## 🎨 Cores da Empresa
-
-- **Roxo Principal:** `#6B46C1`
-- **Roxo Escuro:** `#553C9A`
-- **Laranja:** `#FF7A3D`
-- **Laranja Escuro:** `#E66A31`
-- **Rosa:** `#C794C7`
-- **Azul:** `#2C3E7C`
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **Backend:** Python 3.x + Flask
-- **Banco de Dados:** MySQL 8.0+
-- **Frontend:** HTML5 + Tailwind CSS
-- **Gráficos:** Chart.js
-- **Ícones:** Font Awesome
+- **Backend:** Python 3.x + Flask 3.0.0
+- **Banco de Dados:** MySQL 8.0+ (18 tabelas)
+- **Frontend:** HTML5 + Tailwind CSS 3.x
+- **Gráficos:** Chart.js 4.x
+- **Ícones:** Font Awesome 6.x
 - **Autenticação:** Flask Sessions + bcrypt
 - **Configuração:** python-dotenv
+- **Email:** smtplib (nativo Python)
+- **Matching:** difflib.SequenceMatcher (fuzzy matching)
+- **Upload:** Werkzeug secure_filename
 
-## 📋 Funcionalidades
+## 📊 Relatórios Disponíveis
 
-### ✅ Implementadas
+### DRE - Demonstração do Resultado do Exercício
+- Receita Operacional Bruta
+- Deduções da Receita (devoluções, impostos)
+- Receita Operacional Líquida
+- Custos e Despesas
+- EBITDA, EBIT, Lucro Líquido
+- Margens: Bruta, Operacional, Líquida
 
+### Balanço Patrimonial
+- **Ativo**: Circulante + Não Circulante
+- **Passivo**: Circulante + Não Circulante
+- **Patrimônio Líquido**: Capital Social + Reservas + Lucros
+- **Indicadores**: Liquidez Corrente, Liquidez Seca, Endividamento
+
+### DFC - Demonstração de Fluxo de Caixa
+- Fluxo Operacional (recebimentos e pagamentos)
+- Fluxo de Investimentos
+- Fluxo de Financiamentos
+- Variação Líquida de Caixa
+
+### Análises Comparativas
+- **Horizontal**: Comparação entre períodos (mês a mês, ano a ano)
+- **Vertical**: Composição percentual de receitas e despesas
+
+## 🏦 Conciliação Bancária
+
+### Funcionalidades
+- Upload de extratos CSV (múltiplos formatos)
+- Detecção automática de formato (Bradesco, Itaú, genérico)
+- Matching inteligente com algoritmo fuzzy
+- Similaridade ponderada:
+  - Descrição: 40%
+  - Valor: 30%
+  - Data: 20%
+  - Documento: 10%
+- Tolerância: ±3 dias, ±1% valor
+- Interface visual com cards de sugestões
+- Histórico de conciliações
+
+### Formatos CSV Suportados
+- Bradesco (padrão)
+- Itaú (padrão)
+- Genérico (configurável)
+- Delimitadores: `;`, `,`, `|`, `\t`
+- Encodings: UTF-8, Latin1, CP1252
+
+## 📧 Sistema de Notificações
+
+### Tipos de Alertas
+1. **Vencimentos**: Contas a pagar/receber vencendo em N dias
+2. **Saldo Baixo**: Contas bancárias < limite de alerta
+3. **Resumo Diário**: Consolidado de pendências
+
+### Configuração
+```bash
+# .env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=seu-email@gmail.com
+SMTP_PASSWORD=senha-app-gmail
+```
+
+### Uso Manual
+```bash
+# Alertas de vencimentos (7 dias)
+.venv\Scripts\python.exe enviar_alertas.py --tipo vencimentos --dias 7 --email admin@empresa.com
+
+# Alertas de saldo baixo
+.venv\Scripts\python.exe enviar_alertas.py --tipo saldo --email admin@empresa.com
+
+# Enviar todos os alertas
+.venv\Scripts\python.exe enviar_alertas.py --tipo todos --dias 5 --email gestao@empresa.com
+```
+
+### Automação
+- **Windows**: Task Scheduler (diário às 8:00)
+- **Linux**: Cron job (configurável)
+
+Ver documentação completa em `docs/NOTIFICACOES.md`
+
+## 📋 Funcionalidades Implementadas
+
+### ✅ Fase 1 - Base do Sistema
 - [x] Sistema de login com autenticação
-- [x] **Integração com banco MySQL**
-- [x] **Hash seguro de senhas (bcrypt)**
-- [x] **Configuração por variáveis de ambiente**
+- [x] Integração com MySQL 8.0+
+- [x] Hash seguro de senhas (bcrypt)
+- [x] Configuração por variáveis de ambiente
 - [x] Dashboard com cards de indicadores
-- [x] Gráficos interativos (barras e pizza)
-- [x] Tabela de chamadas recentes
 - [x] Menu de navegação responsivo
-- [x] Páginas: Cadastros, Configurações, Perfil
-- [x] Sistema de logout
 - [x] Flash messages para feedback
+- [x] 18 tabelas estruturadas
 
-### 🔄 Próximas Implementações
+### ✅ Fase 2 - Módulos Avançados
+- [x] **Relatórios Financeiros**: DRE, Balanço, DFC, Análises H/V
+- [x] **Conciliação Bancária**: Import CSV, matching fuzzy, histórico
+- [x] **Notificações**: Alertas de vencimento e saldo baixo por email
 
-- [ ] CRUD completo de clientes
-- [ ] Sistema de relatórios em PDF
-- [ ] API REST
-- [ ] Filtros e busca avançada
-- [ ] Exportação de dados (Excel/CSV)
-- [ ] Notificações em tempo real
+### ✅ Cadastros Completos
+- [x] CRUD de Clientes (CNPJ/CPF, endereços, contatos)
+- [x] CRUD de Fornecedores
+- [x] CRUD de Produtos (categorias, preços)
+- [x] CRUD de Usuários
+
+### ✅ Financeiro Operacional
+- [x] Contas a Pagar (fornecedores, parcelas, status)
+- [x] Contas a Receber (clientes, recebimentos)
+- [x] Lançamentos Manuais (ajustes, transferências)
+- [x] Contas Bancárias (saldos, múltiplas contas)
+
+### 🔄 Roadmap Futuro
+- [ ] Dashboard com dados reais (integração completa)
+- [ ] Gráficos dinâmicos Chart.js com dados do banco
+- [ ] API REST para integração externa
+- [ ] Exportação PDF dos relatórios
+- [ ] Excel/CSV export
 - [ ] Modo escuro
 - [ ] Recuperação de senha
 - [ ] Logs de auditoria
+- [ ] Controle de permissões (roles)
 
 ## 🔒 Segurança
 

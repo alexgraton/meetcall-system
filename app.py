@@ -15,6 +15,11 @@ from routes.plano_contas import plano_contas_bp
 from routes.contas_pagar import contas_pagar_bp
 from routes.contas_receber import contas_receber_bp
 from routes.lancamentos import lancamentos_bp
+from routes.contas_bancarias import contas_bancarias_bp
+from routes.fluxo_caixa import fluxo_caixa_bp
+from routes.dashboard import dashboard_bp
+from routes.relatorios import relatorios_bp
+from routes.conciliacao import conciliacao_bp
 
 # Inicializar Flask com configurações
 config = Config()
@@ -29,6 +34,19 @@ def formatar_moeda(valor):
         valor = 0
     return f"{float(valor):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
+# Filtro customizado para formatação de data
+@app.template_filter('date_format')
+def formatar_data(valor):
+    """Formata data no formato DD/MM/YYYY"""
+    if valor is None:
+        return ''
+    if isinstance(valor, str):
+        try:
+            valor = datetime.strptime(valor, '%Y-%m-%d')
+        except:
+            return valor
+    return valor.strftime('%d/%m/%Y')
+
 # Registrar blueprints
 app.register_blueprint(filiais_bp)
 app.register_blueprint(tipos_servicos_bp)
@@ -39,6 +57,11 @@ app.register_blueprint(plano_contas_bp)
 app.register_blueprint(contas_pagar_bp)
 app.register_blueprint(contas_receber_bp)
 app.register_blueprint(lancamentos_bp)
+app.register_blueprint(contas_bancarias_bp)
+app.register_blueprint(fluxo_caixa_bp)
+app.register_blueprint(dashboard_bp)
+app.register_blueprint(relatorios_bp)
+app.register_blueprint(conciliacao_bp)
 
 # Decorator para rotas protegidas
 def login_required(f):
@@ -102,22 +125,8 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Dados simulados para o dashboard
-    dados = {
-        'total_chamadas': 1247,
-        'chamadas_hoje': 89,
-        'tempo_medio': '12:34',
-        'satisfacao': 4.5,
-        'chamadas_recentes': [
-            {'id': '#12345', 'cliente': 'João Silva', 'data': '16/10/2025 14:30', 'duracao': '15:23', 'status': 'Concluída'},
-            {'id': '#12344', 'cliente': 'Maria Santos', 'data': '16/10/2025 13:15', 'duracao': '08:45', 'status': 'Concluída'},
-            {'id': '#12343', 'cliente': 'Pedro Costa', 'data': '16/10/2025 12:00', 'duracao': '22:10', 'status': 'Concluída'},
-            {'id': '#12342', 'cliente': 'Ana Oliveira', 'data': '16/10/2025 11:20', 'duracao': '05:32', 'status': 'Pendente'},
-        ],
-        'grafico_labels': ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
-        'grafico_dados': [45, 52, 38, 67, 73, 28, 15]
-    }
-    return render_template('dashboard.html', dados=dados)
+    """Redireciona para o Dashboard Financeiro"""
+    return redirect(url_for('dashboard.index'))
 
 @app.route('/cadastros')
 @login_required

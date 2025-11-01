@@ -14,6 +14,13 @@ class Config:
     MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD') or ''
     MYSQL_DATABASE = os.environ.get('MYSQL_DATABASE') or 'meetcall_system'
     
+    # Configurações de Email/SMTP
+    SMTP_HOST = os.environ.get('SMTP_HOST') or 'smtp.gmail.com'
+    SMTP_PORT = int(os.environ.get('SMTP_PORT') or 587)
+    SMTP_USER = os.environ.get('SMTP_USER') or ''
+    SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD') or ''
+    SMTP_FROM = os.environ.get('SMTP_FROM') or SMTP_USER
+    
     @property
     def MYSQL_CONFIG(self):
         return {
