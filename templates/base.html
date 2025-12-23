@@ -11,6 +11,13 @@
     <!-- Chart.js para gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    
     <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -49,28 +56,28 @@
     {% if session.user %}
     <!-- Navbar -->
     <nav class="bg-gradient-to-r from-meetcall-purple to-meetcall-purple-dark shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
+        <div class="px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
                     <!-- Logo -->
                     <div class="flex-shrink-0 flex items-center">
                         <span class="text-2xl font-bold text-white">Meet <span class="text-meetcall-orange">Call</span></span>
                     </div>
                     
                     <!-- Menu Principal -->
-                    <div class="hidden md:ml-10 md:flex md:space-x-2">
-                        <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition">
+                    <div class="hidden md:ml-10 md:flex md:items-center md:space-x-2">
+                        <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition flex items-center">
                             <i class="fas fa-chart-line mr-2"></i>Dashboard
                         </a>
                         
                         {% if session.role == 'admin' %}
                         <!-- Dropdown Cadastros -->
-                        <div class="relative group">
+                        <div class="relative group" id="dropdown-cadastros">
                             <button class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition flex items-center">
                                 <i class="fas fa-database mr-2"></i>Cadastros
                                 <i class="fas fa-chevron-down ml-1 text-xs"></i>
                             </button>
-                            <div class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg hidden group-hover:block z-50">
+                            <div class="dropdown-menu absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg hidden z-50">
                                 <div class="py-1">
                                     <a href="{{ url_for('filiais.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-building mr-2 w-4"></i>Filiais
@@ -89,26 +96,13 @@
                         </div>
                         
                         <!-- Dropdown Financeiro -->
-                        <div class="relative group">
+                        <div class="relative group" id="dropdown-financeiro">
                             <button class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition flex items-center">
                                 <i class="fas fa-dollar-sign mr-2"></i>Financeiro
                                 <i class="fas fa-chevron-down ml-1 text-xs"></i>
                             </button>
-                            <div class="absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg hidden group-hover:block z-50">
+                            <div class="dropdown-menu absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg hidden z-50">
                                 <div class="py-1">
-                                    <a href="{{ url_for('dashboard.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
-                                        <i class="fas fa-tachometer-alt mr-2 w-4"></i>Dashboard Financeiro
-                                    </a>
-                                    <a href="{{ url_for('fluxo_caixa.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
-                                        <i class="fas fa-chart-area mr-2 w-4"></i>Fluxo de Caixa
-                                    </a>
-                                    <a href="{{ url_for('relatorios.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
-                                        <i class="fas fa-file-alt mr-2 w-4"></i>Relatórios Financeiros
-                                    </a>
-                                    <a href="{{ url_for('conciliacao.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
-                                        <i class="fas fa-check-double mr-2 w-4"></i>Conciliação Bancária
-                                    </a>
-                                    <div class="border-t border-gray-100 my-1"></div>
                                     <a href="{{ url_for('contas_pagar.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-file-invoice-dollar mr-2 w-4"></i>Contas a Pagar
                                     </a>
@@ -122,6 +116,19 @@
                                         <i class="fas fa-university mr-2 w-4"></i>Contas Bancárias
                                     </a>
                                     <div class="border-t border-gray-100 my-1"></div>
+                                    <a href="{{ url_for('dashboard.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-tachometer-alt mr-2 w-4"></i>Dashboard Financeiro
+                                    </a>
+                                    <a href="{{ url_for('fluxo_caixa.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-chart-area mr-2 w-4"></i>Fluxo de Caixa
+                                    </a>
+                                    <a href="{{ url_for('relatorios.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-file-alt mr-2 w-4"></i>Relatórios Financeiros
+                                    </a>
+                                    <a href="{{ url_for('conciliacao.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-check-double mr-2 w-4"></i>Conciliação Bancária
+                                    </a>
+                                    <div class="border-t border-gray-100 my-1"></div>
                                     <a href="{{ url_for('plano_contas.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-chart-line mr-2 w-4"></i>Plano de Contas
                                     </a>
@@ -133,7 +140,7 @@
                         </div>
                         {% endif %}
                         
-                        <a href="{{ url_for('configuracoes') }}" class="{% if request.endpoint == 'configuracoes' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition">
+                        <a href="{{ url_for('configuracoes') }}" class="{% if request.endpoint == 'configuracoes' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition flex items-center">
                             <i class="fas fa-cog mr-2"></i>Configurações
                         </a>
                     </div>
@@ -143,20 +150,20 @@
                 <div class="flex items-center">
                     <!-- Botão Menu Mobile -->
                     <div class="md:hidden mr-2">
-                        <button id="mobile-menu-button" type="button" class="text-white hover:text-meetcall-orange focus:outline-none">
+                        <button id="mobile-menu-button" type="button" class="text-white hover:text-meetcall-orange focus:outline-none flex items-center">
                             <i class="fas fa-bars text-2xl"></i>
                         </button>
                     </div>
                     
-                    <div class="ml-3 relative group">
-                        <button class="flex text-sm rounded-full text-white hover:text-meetcall-orange transition">
+                    <div class="ml-3 relative" id="user-menu-container">
+                        <button id="user-menu-button" class="flex items-center text-sm rounded-full text-white hover:text-meetcall-orange transition">
                             <i class="fas fa-user-circle text-2xl mr-2"></i>
                             <span class="hidden md:block">{{ session.name }}</span>
                             <i class="fas fa-chevron-down ml-2 text-xs mt-1"></i>
                         </button>
                         
                         <!-- Dropdown Menu -->
-                        <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                        <div id="user-menu-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                             <a href="{{ url_for('perfil') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i class="fas fa-user mr-2"></i>Meu Perfil
                             </a>
@@ -248,10 +255,15 @@
         {% if messages %}
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
                 {% for category, message in messages %}
-                    <div class="fade-in rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 border-l-4 border-red-500{% elif category == 'success' %}bg-green-50 border-l-4 border-green-500{% elif category == 'warning' %}bg-yellow-50 border-l-4 border-yellow-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %}">
-                        <div class="flex items-center">
-                            <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-500{% elif category == 'success' %}fa-check-circle text-green-500{% elif category == 'warning' %}fa-exclamation-triangle text-yellow-500{% else %}fa-info-circle text-blue-500{% endif %} mr-3"></i>
-                            <p class="text-sm {% if category == 'error' %}text-red-800{% elif category == 'success' %}text-green-800{% elif category == 'warning' %}text-yellow-800{% else %}text-blue-800{% endif %}">{{ message }}</p>
+                    <div class="flash-message fade-in rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 border-l-4 border-red-500{% elif category == 'success' %}bg-green-50 border-l-4 border-green-500{% elif category == 'warning' %}bg-yellow-50 border-l-4 border-yellow-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %}">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-500{% elif category == 'success' %}fa-check-circle text-green-500{% elif category == 'warning' %}fa-exclamation-triangle text-yellow-500{% else %}fa-info-circle text-blue-500{% endif %} mr-3"></i>
+                                <p class="text-sm {% if category == 'error' %}text-red-800{% elif category == 'success' %}text-green-800{% elif category == 'warning' %}text-yellow-800{% else %}text-blue-800{% endif %}">{{ message }}</p>
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 {% endfor %}
@@ -277,6 +289,44 @@
     
     <!-- Script para Menu Mobile -->
     <script>
+        // Controle de dropdowns do menu
+        const dropdowns = document.querySelectorAll('.group');
+        
+        dropdowns.forEach(dropdown => {
+            const button = dropdown.querySelector('button');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            
+            if (button && menu) {
+                let hideTimeout;
+                
+                // Mostrar ao passar mouse no botão
+                button.addEventListener('mouseenter', function() {
+                    clearTimeout(hideTimeout);
+                    menu.classList.remove('hidden');
+                });
+                
+                // Manter aberto ao passar mouse no botão
+                button.addEventListener('mouseleave', function() {
+                    hideTimeout = setTimeout(() => {
+                        menu.classList.add('hidden');
+                    }, 200);
+                });
+                
+                // Manter aberto ao passar mouse no menu
+                menu.addEventListener('mouseenter', function() {
+                    clearTimeout(hideTimeout);
+                    menu.classList.remove('hidden');
+                });
+                
+                // Esconder ao sair do menu
+                menu.addEventListener('mouseleave', function() {
+                    hideTimeout = setTimeout(() => {
+                        menu.classList.add('hidden');
+                    }, 200);
+                });
+            }
+        });
+        
         // Toggle menu mobile
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
@@ -301,6 +351,68 @@
                 });
             });
         }
+        
+        // Dropdown do menu de usuário com delay
+        const userMenuContainer = document.getElementById('user-menu-container');
+        const userMenuButton = document.getElementById('user-menu-button');
+        const userMenuDropdown = document.getElementById('user-menu-dropdown');
+        
+        if (userMenuContainer && userMenuButton && userMenuDropdown) {
+            let hideTimeout;
+            
+            // Mostrar ao passar o mouse no botão
+            userMenuButton.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+                userMenuDropdown.classList.remove('hidden');
+            });
+            
+            // Manter aberto ao passar o mouse no dropdown
+            userMenuDropdown.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+                userMenuDropdown.classList.remove('hidden');
+            });
+            
+            // Esconder com delay ao sair do botão
+            userMenuButton.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    userMenuDropdown.classList.add('hidden');
+                }, 300); // 300ms de delay
+            });
+            
+            // Esconder com delay ao sair do dropdown
+            userMenuDropdown.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    userMenuDropdown.classList.add('hidden');
+                }, 300); // 300ms de delay
+            });
+            
+            // Alternativamente, mostrar/esconder ao clicar
+            userMenuButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userMenuDropdown.classList.toggle('hidden');
+            });
+            
+            // Fechar ao clicar fora
+            document.addEventListener('click', function(e) {
+                if (!userMenuContainer.contains(e.target)) {
+                    userMenuDropdown.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Auto-fechar mensagens flash após 5 segundos
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    message.style.transition = 'opacity 0.5s ease-out';
+                    message.style.opacity = '0';
+                    setTimeout(function() {
+                        message.remove();
+                    }, 500);
+                }, 5000); // 5 segundos
+            });
+        });
     </script>
     
     {% block extra_js %}{% endblock %}

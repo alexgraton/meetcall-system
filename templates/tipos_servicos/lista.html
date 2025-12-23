@@ -1,249 +1,203 @@
 {% extends "base.html" %}
 
-{% block title %}Tipos de Serviços - MeetCall System{% endblock %}
+{% block title %}Categorias de Despesas - MeetCall System{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Cabeçalho -->
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-3xl font-bold text-gray-800">Tipos de Serviços</h1>
-            <p class="text-gray-600 mt-1">Gerencie categorias e subcategorias de serviços</p>
+            <h1 class="text-3xl font-bold text-gray-800">Categorias de Despesas</h1>
+            <p class="text-gray-600 mt-1">Organize as despesas operacionais do call center</p>
         </div>
         {% if session.role == 'admin' %}
-        <a href="{{ url_for('tipos_servicos.novo') }}" class="bg-meetcall-purple hover:bg-meetcall-purple-dark text-white px-6 py-3 rounded-lg font-medium transition flex items-center">
+        <a href="{{ url_for('tipos_servicos.novo') }}" 
+           class="bg-meetcall-purple hover:bg-meetcall-purple-dark text-white px-6 py-2 rounded-lg transition flex items-center">
             <i class="fas fa-plus mr-2"></i>
-            Novo Tipo de Serviço
+            Nova Categoria Principal
         </a>
         {% endif %}
     </div>
 
-    <!-- Tabela de Tipos de Serviços -->
-    <div class="bg-white rounded-lg shadow-md overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200" id="tiposTable">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Nome
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Tipo
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Descrição
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Alíquota
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Margem Esperada
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Status
-                        </th>
-                        {% if session.role == 'admin' %}
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ações
-                        </th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    {% for categoria in tipos %}
-                    <!-- Categoria Principal -->
-                    <tr class="hover:bg-gray-50 {% if not categoria.is_active %}bg-gray-100 text-gray-400{% endif %}">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <i class="fas fa-folder text-meetcall-purple mr-2"></i>
-                                <span class="font-bold text-gray-900">{{ categoria.nome }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if categoria.tipo == 'despesa' %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                <i class="fas fa-arrow-down mr-1"></i>Despesa
-                            </span>
-                            {% else %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                <i class="fas fa-arrow-up mr-1"></i>Receita
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="text-sm text-gray-600">{{ categoria.descricao or '-' }}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm font-medium">{{ "%.2f"|format(categoria.aliquota) }}%</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm font-medium">{{ "%.2f"|format(categoria.margem_esperada) }}%</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if categoria.is_active %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                Ativo
-                            </span>
-                            {% else %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                Inativo
-                            </span>
-                            {% endif %}
-                        </td>
-                        {% if session.role == 'admin' %}
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <div class="flex space-x-2">
-                                <a href="{{ url_for('tipos_servicos.editar', tipo_id=categoria.id) }}" 
-                                   class="text-blue-600 hover:text-blue-900" 
-                                   title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button onclick="toggleStatus({{ categoria.id }})" 
-                                        class="text-yellow-600 hover:text-yellow-900" 
-                                        title="Ativar/Desativar">
-                                    <i class="fas fa-toggle-on"></i>
-                                </button>
-                                <button onclick="deleteTipo({{ categoria.id }}, '{{ categoria.nome }}')" 
-                                        class="text-red-600 hover:text-red-900" 
-                                        title="Excluir">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                        {% endif %}
-                    </tr>
+    <!-- Lista de Categorias -->
+    <div class="space-y-2">
+        {% for categoria in categorias %}
+        <!-- Categoria Principal -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <!-- Linha da Categoria -->
+            <div class="flex items-center justify-between p-4 hover:bg-gray-50 cursor-pointer" 
+                 onclick="toggleCategoria({{ categoria.id }})">
+                <div class="flex items-center flex-1">
+                    <!-- Botão Expandir -->
+                    <button class="mr-3 text-gray-500 hover:text-meetcall-purple transition" 
+                            id="toggle-icon-{{ categoria.id }}">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
                     
-                    <!-- Subcategorias -->
-                    {% for subcategoria in categoria.children %}
-                    <tr class="hover:bg-gray-50 {% if not subcategoria.is_active %}bg-gray-100 text-gray-400{% endif %}">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center pl-8">
-                                <i class="fas fa-file-alt text-meetcall-orange mr-2"></i>
-                                <span class="text-gray-700">{{ subcategoria.nome }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if subcategoria.tipo == 'despesa' %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                <i class="fas fa-arrow-down mr-1"></i>Despesa
-                            </span>
-                            {% else %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                <i class="fas fa-arrow-up mr-1"></i>Receita
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="text-sm text-gray-600">{{ subcategoria.descricao or '-' }}</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm">{{ "%.2f"|format(subcategoria.aliquota) }}%</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-sm">{{ "%.2f"|format(subcategoria.margem_esperada) }}%</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if subcategoria.is_active %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                Ativo
-                            </span>
-                            {% else %}
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                Inativo
-                            </span>
-                            {% endif %}
-                        </td>
-                        {% if session.role == 'admin' %}
-                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                            <div class="flex space-x-2">
-                                <a href="{{ url_for('tipos_servicos.editar', tipo_id=subcategoria.id) }}" 
-                                   class="text-blue-600 hover:text-blue-900" 
-                                   title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button onclick="toggleStatus({{ subcategoria.id }})" 
-                                        class="text-yellow-600 hover:text-yellow-900" 
-                                        title="Ativar/Desativar">
-                                    <i class="fas fa-toggle-on"></i>
-                                </button>
-                                <button onclick="deleteTipo({{ subcategoria.id }}, '{{ subcategoria.nome }}')" 
-                                        class="text-red-600 hover:text-red-900" 
-                                        title="Excluir">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                    {% endfor %}
-                    
-                    {% if not tipos %}
-                    <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                            <i class="fas fa-inbox text-4xl mb-2"></i>
-                            <p>Nenhum tipo de serviço cadastrado.</p>
-                            {% if session.role == 'admin' %}
-                            <a href="{{ url_for('tipos_servicos.novo') }}" class="text-meetcall-purple hover:underline mt-2 inline-block">
-                                Cadastrar o primeiro tipo
-                            </a>
-                            {% endif %}
-                        </td>
-                    </tr>
+                    <!-- Ícone e Nome -->
+                    <i class="fas fa-folder text-meetcall-purple mr-3 text-lg"></i>
+                    <div>
+                        <span class="font-bold text-gray-900 text-lg">{{ categoria.nome }}</span>
+                        <span class="ml-3 text-sm text-gray-500">
+                            ({{ categoria.subtipos|length }} {% if categoria.subtipos|length == 1 %}subtipo{% else %}subtipos{% endif %})
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Badges e Ações -->
+                <div class="flex items-center space-x-4">
+                    <!-- Tipo -->
+                    {% if categoria.tipo == 'despesa' %}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                        <i class="fas fa-arrow-down mr-1"></i>Despesa
+                    </span>
+                    {% else %}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        <i class="fas fa-arrow-up mr-1"></i>Receita
+                    </span>
                     {% endif %}
-                </tbody>
-            </table>
+                    
+                    <!-- Status -->
+                    {% if categoria.is_active %}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                        Ativo
+                    </span>
+                    {% else %}
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                        Inativo
+                    </span>
+                    {% endif %}
+                    
+                    <!-- Ações -->
+                    {% if session.role == 'admin' %}
+                    <div class="flex space-x-2" onclick="event.stopPropagation()">
+                        <a href="{{ url_for('tipos_servicos.editar', tipo_id=categoria.id) }}" 
+                           class="text-blue-600 hover:text-blue-900 p-2" 
+                           title="Editar Categoria">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button onclick="excluirCategoria({{ categoria.id }}, '{{ categoria.nome }}', {{ categoria.subtipos|length }})" 
+                                class="text-red-600 hover:text-red-900 p-2" 
+                                title="Excluir Categoria">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Área Expansível - Subtipos -->
+            <div id="subtipos-{{ categoria.id }}" class="hidden border-t border-gray-200 bg-gray-50">
+                <div class="p-4">
+                    <!-- Descrição da Categoria -->
+                    {% if categoria.descricao and categoria.descricao != 'None' %}
+                    <div class="mb-4 text-sm text-gray-600 italic">
+                        <i class="fas fa-info-circle mr-2"></i>{{ categoria.descricao }}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Lista de Subtipos -->
+                    {% if categoria.subtipos %}
+                    <div class="space-y-2">
+                        {% for subtipo in categoria.subtipos|sort(attribute='nome') %}
+                        <div class="flex items-center justify-between bg-white p-3 rounded border border-gray-200 hover:border-meetcall-purple transition">
+                            <div class="flex items-center">
+                                <i class="fas fa-file-alt text-gray-400 mr-3"></i>
+                                <span class="text-gray-800">{{ subtipo.nome }}</span>
+                                {% if subtipo.descricao and subtipo.descricao != 'None' %}
+                                <span class="ml-3 text-sm text-gray-500">- {{ subtipo.descricao }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if session.role == 'admin' %}
+                            <div class="flex space-x-2">
+                                <a href="{{ url_for('tipos_servicos.editar', tipo_id=subtipo.id) }}" 
+                                   class="text-blue-600 hover:text-blue-900 p-2" 
+                                   title="Editar Subtipo">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button onclick="excluirSubtipo({{ subtipo.id }}, '{{ subtipo.nome }}')" 
+                                        class="text-red-600 hover:text-red-900 p-2" 
+                                        title="Excluir Subtipo">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-gray-500">
+                        <i class="fas fa-inbox text-3xl mb-2"></i>
+                        <p>Nenhum subtipo cadastrado</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Botão Adicionar Subtipo -->
+                    {% if session.role == 'admin' %}
+                    <div class="mt-4">
+                        <a href="{{ url_for('tipos_servicos.novo_subtipo', categoria_id=categoria.id) }}" 
+                           class="inline-flex items-center px-4 py-2 bg-white border-2 border-dashed border-meetcall-purple text-meetcall-purple rounded-lg hover:bg-purple-50 transition">
+                            <i class="fas fa-plus mr-2"></i>
+                            Adicionar Subtipo em {{ categoria.nome }}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
+        {% endfor %}
+        
+        {% if not categorias %}
+        <!-- Estado Vazio -->
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Nenhuma categoria cadastrada</h3>
+            <p class="text-gray-500 mb-6">Comece criando categorias principais como Tecnologia, Recursos Humanos, etc.</p>
+            {% if session.role == 'admin' %}
+            <a href="{{ url_for('tipos_servicos.novo') }}" 
+               class="inline-flex items-center px-6 py-3 bg-meetcall-purple text-white rounded-lg hover:bg-meetcall-purple-dark transition">
+                <i class="fas fa-plus mr-2"></i>
+                Criar Primeira Categoria
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
 
-{% if session.role == 'admin' %}
+<!-- JavaScript -->
 <script>
-function toggleStatus(tipoId) {
-    if (confirm('Deseja realmente alterar o status deste tipo de serviço?')) {
-        fetch(`{{ url_for('tipos_servicos.toggle_status', tipo_id=0) }}`.replace('0', tipoId), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao alterar status');
-        });
+function toggleCategoria(id) {
+    const subtipos = document.getElementById('subtipos-' + id);
+    const icon = document.getElementById('toggle-icon-' + id).querySelector('i');
+    
+    if (subtipos.classList.contains('hidden')) {
+        subtipos.classList.remove('hidden');
+        icon.classList.remove('fa-chevron-down');
+        icon.classList.add('fa-chevron-up');
+    } else {
+        subtipos.classList.add('hidden');
+        icon.classList.remove('fa-chevron-up');
+        icon.classList.add('fa-chevron-down');
     }
 }
 
-function deleteTipo(tipoId, tipoNome) {
-    if (confirm(`Tem certeza que deseja excluir "${tipoNome}"?\n\nSe houver subcategorias, todas serão desativadas.`)) {
-        fetch(`{{ url_for('tipos_servicos.deletar', tipo_id=0) }}`.replace('0', tipoId), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao excluir tipo de serviço');
-        });
+function excluirCategoria(id, nome, totalSubtipos) {
+    if (totalSubtipos > 0) {
+        alert(`Não é possível excluir a categoria "${nome}" porque ela possui ${totalSubtipos} subtipo(s) cadastrado(s).\n\nExclua primeiro todos os subtipos antes de excluir a categoria.`);
+        return;
+    }
+    
+    if (confirm(`Tem certeza que deseja excluir a categoria "${nome}"?`)) {
+        window.location.href = `/tipos-servicos/excluir/${id}`;
+    }
+}
+
+function excluirSubtipo(id, nome) {
+    if (confirm(`Tem certeza que deseja excluir o subtipo "${nome}"?`)) {
+        window.location.href = `/tipos-servicos/excluir/${id}`;
     }
 }
 </script>
-{% endif %}
 {% endblock %}

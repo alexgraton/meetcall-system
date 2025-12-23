@@ -1,6 +1,15 @@
 # 📘 Guia de Uso - MeetCall System
 
-## 🚀 Início Rápido
+## � Documentação Disponível
+
+- **📖 Este Guia**: Uso geral do sistema
+- **📋 Manual de Cadastros**: `CADASTROS.md` - Explicação detalhada sobre Tipos de Serviços, Alíquotas e Margens
+- **📧 Sistema de Notificações**: `NOTIFICACOES.md` - Como configurar alertas por email
+- **📊 Resumo da Fase 2**: `FASE2_RESUMO.md` - Histórico de implementação
+
+---
+
+## �🚀 Início Rápido
 
 ### 1. Configuração Inicial
 

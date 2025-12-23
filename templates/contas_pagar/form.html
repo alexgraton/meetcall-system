@@ -14,7 +14,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                <div id="flash-message" class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
                     {{ message }}
                 </div>
             {% endfor %}
@@ -69,19 +69,38 @@
         <div class="border-b pb-6">
             <h2 class="text-xl font-semibold text-gray-800 mb-4">Classificação Contábil</h2>
             
+            <!-- Explicação -->
+            <div class="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 text-sm text-gray-700">
+                <p class="mb-1"><strong>💡 Dica:</strong></p>
+                <p class="mb-1"><strong>Tipo de Serviço:</strong> Categoria da despesa (ex: Telefonia, Aluguel, Manutenção)</p>
+                <p><strong>Centro de Custo:</strong> Departamento que gerou a despesa (ex: Vendas, TI, Administrativo)</p>
+            </div>
+            
             <div class="grid grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Serviço</label>
-                    <select name="tipo_servico_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
-                        <option value="">Selecione...</option>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+                    <select id="categoria_servico" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione uma categoria...</option>
                         {% for tipo in tipos_servicos %}
-                            <option value="{{ tipo.id }}">{{ tipo.descricao }}</option>
+                            {% if tipo.parent_id is none %}
+                                <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Centro de Custo</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Serviço</label>
+                    <select name="tipo_servico_id" id="tipo_servico_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple" disabled>
+                        <option value="">Selecione categoria primeiro...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Centro de Custo
+                        <span class="text-xs text-gray-500 font-normal">(Departamento)</span>
+                    </label>
                     <select name="centro_custo_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
                         <option value="">Selecione...</option>
                         {% for centro in centros_custos %}
@@ -90,7 +109,7 @@
                     </select>
                 </div>
 
-                <div>
+                <div class="col-span-3">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Conta Contábil (Despesa)</label>
                     <select name="conta_contabil_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
                         <option value="">Selecione...</option>
@@ -199,14 +218,47 @@
                 Cancelar
             </a>
             <button type="submit" 
-                    class="bg-meetcall-purple hover:bg-purple-700 text-white px-6 py-2 rounded-lg transition duration-300">
-                Cadastrar Conta
+                    class="px-6 py-2 bg-meetcall-purple text-white rounded-lg hover:bg-purple-700 transition duration-300">
+                <i class="fas fa-save mr-2"></i>Salvar
             </button>
         </div>
     </form>
 </div>
 
 <script>
+// Dados dos tipos de serviços em formato JSON
+const tiposServicos = {{ tipos_servicos | tojson }};
+
+// Select em cascata: Categoria -> Tipo de Serviço
+document.getElementById('categoria_servico').addEventListener('change', function() {
+    const categoriaId = parseInt(this.value);
+    const tipoServicoSelect = document.getElementById('tipo_servico_id');
+    
+    // Limpar opções
+    tipoServicoSelect.innerHTML = '<option value="">Selecione...</option>';
+    
+    if (categoriaId) {
+        // Filtrar tipos de serviço que pertencem à categoria selecionada
+        const subtipos = tiposServicos.filter(tipo => tipo.parent_id === categoriaId);
+        
+        if (subtipos.length > 0) {
+            subtipos.forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo.id;
+                option.textContent = tipo.nome || tipo.descricao || 'Sem nome';
+                tipoServicoSelect.appendChild(option);
+            });
+            tipoServicoSelect.disabled = false;
+        } else {
+            tipoServicoSelect.innerHTML = '<option value="">Nenhum serviço cadastrado nesta categoria</option>';
+            tipoServicoSelect.disabled = true;
+        }
+    } else {
+        tipoServicoSelect.innerHTML = '<option value="">Selecione categoria primeiro...</option>';
+        tipoServicoSelect.disabled = true;
+    }
+});
+
 // Habilitar tipo de recorrência quando marcar checkbox
 document.getElementById('recorrente').addEventListener('change', function() {
     document.getElementById('tipo_recorrencia').disabled = !this.checked;
@@ -214,5 +266,17 @@ document.getElementById('recorrente').addEventListener('change', function() {
 
 // Definir data de emissão como hoje por padrão
 document.querySelector('input[name="data_emissao"]').value = new Date().toISOString().split('T')[0];
+
+// Auto-ocultar mensagens flash após 2 segundos
+const flashMessage = document.getElementById('flash-message');
+if (flashMessage) {
+    setTimeout(() => {
+        flashMessage.style.transition = 'opacity 0.5s ease';
+        flashMessage.style.opacity = '0';
+        setTimeout(() => {
+            flashMessage.remove();
+        }, 500);
+    }, 2000);
+}
 </script>
 {% endblock %}

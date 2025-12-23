@@ -7,13 +7,12 @@ from typing import List, Dict, Optional
 from database import DatabaseManager
 
 class TipoServicoModel:
-    """Modelo para operações CRUD de Tipos de Serviços"""
+    """Modelo para operações CRUD de Tipos de Serviços / Categorias de Despesas"""
     
     @staticmethod
     def create(nome: str, descricao: str = None, parent_id: int = None, 
-               aliquota: float = 0.0, margem_esperada: float = 0.0, 
                tipo: str = 'despesa', codigo: str = None) -> int:
-        """Cria um novo tipo de serviço"""
+        """Cria uma nova categoria de despesa"""
         db_manager = DatabaseManager()
         with db_manager.get_connection() as db:
             cursor = db.cursor()
@@ -27,10 +26,10 @@ class TipoServicoModel:
             
             query = """
                 INSERT INTO tipos_servicos 
-                (codigo, nome, descricao, tipo, parent_id, aliquota, margem_esperada)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                (codigo, nome, descricao, tipo, parent_id)
+                VALUES (%s, %s, %s, %s, %s)
             """
-            cursor.execute(query, (codigo, nome, descricao, tipo, parent_id, aliquota, margem_esperada))
+            cursor.execute(query, (codigo, nome, descricao, tipo, parent_id))
             db.commit()
             return cursor.lastrowid
     
@@ -124,12 +123,11 @@ class TipoServicoModel:
     
     @staticmethod
     def update(tipo_id: int, nome: str, descricao: str = None, 
-               parent_id: int = None, aliquota: float = 0.0, 
-               margem_esperada: float = 0.0) -> bool:
-        """Atualiza um tipo de serviço"""
+               parent_id: int = None) -> bool:
+        """Atualiza uma categoria de despesa"""
         # Validar se não está tentando ser pai de si mesmo
         if parent_id == tipo_id:
-            raise ValueError("Um tipo de serviço não pode ser pai de si mesmo")
+            raise ValueError("Uma categoria não pode ser pai de si mesma")
         
         # Validar ciclos na hierarquia
         if parent_id:
@@ -141,11 +139,10 @@ class TipoServicoModel:
             cursor = db.cursor()
             query = """
                 UPDATE tipos_servicos
-                SET nome = %s, descricao = %s, parent_id = %s, 
-                    aliquota = %s, margem_esperada = %s, updated_at = NOW()
+                SET nome = %s, descricao = %s, parent_id = %s, updated_at = NOW()
                 WHERE id = %s
             """
-            cursor.execute(query, (nome, descricao, parent_id, aliquota, margem_esperada, tipo_id))
+            cursor.execute(query, (nome, descricao, parent_id, tipo_id))
             db.commit()
             return cursor.rowcount > 0
     

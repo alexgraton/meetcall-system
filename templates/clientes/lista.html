@@ -92,62 +92,204 @@
     </div>
 </div>
 
+<!-- Modal de Confirmação -->
+<div id="modalConfirmacao" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target===this) fecharModal()">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-gray-900 mb-4" id="modalTitle">Confirmar Ação</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-base text-gray-600" id="modalMessage">Deseja confirmar esta ação?</p>
+                </div>
+                <div class="flex justify-center space-x-3 px-4 py-3">
+                    <button type="button" onclick="fecharModal()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-300">
+                        <i class="fas fa-times mr-2"></i>Cancelar
+                    </button>
+                    <button type="button" id="btnConfirmar" onclick="confirmarAcao()"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300">
+                        <i class="fas fa-check mr-2"></i>Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Sucesso/Erro -->
+<div id="modalNotificacao" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target===this) fecharNotificacao()">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="flex items-center mb-4">
+                <div id="iconNotificacao" class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full">
+                    <i id="iconNotificacaoClass" class="text-xl"></i>
+                </div>
+            </div>
+            <div class="text-center">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2" id="notificacaoTitle">Notificação</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-600" id="notificacaoMessage"></p>
+                </div>
+                <div class="flex justify-center px-4 py-3">
+                    <button type="button" onclick="fecharNotificacao()" 
+                            class="px-6 py-2 bg-meetcall-purple text-white rounded-lg hover:bg-purple-700 transition duration-300">
+                        OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// Objeto global para armazenar a ação pendente
+window.modalAction = {
+    callback: null,
+    data: null
+};
+
+// Função para excluir cliente
+function deleteCliente(id, nome) {
+    window.modalAction.callback = function(dados) {
+        fetch('/clientes/deletar/' + dados.id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                mostrarNotificacao('Sucesso', 'Cliente excluído com sucesso!', 'success');
+            } else {
+                mostrarNotificacao('Erro', 'Erro ao excluir cliente: ' + data.message, 'error');
+            }
+        })
+        .catch(function(error) {
+            mostrarNotificacao('Erro', 'Erro ao processar requisição', 'error');
+            console.error('Error:', error);
+        });
+    };
+    
+    window.modalAction.data = { id: id, nome: nome };
+    
+    abrirModal(
+        'Excluir Cliente',
+        'Tem certeza que deseja excluir o cliente <strong>"' + nome + '"</strong>?<br><br>' +
+        '<span class="text-red-600 font-semibold">⚠️ Esta ação não pode ser desfeita!</span>'
+    );
+}
+
+// Função para alternar status
+function toggleStatus(id, currentStatus) {
+    var statusTexto = currentStatus ? 'inativar' : 'ativar';
+    
+    window.modalAction.callback = function(dados) {
+        fetch('/clientes/toggle-status/' + dados.id, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                mostrarNotificacao('Sucesso', 'Status do cliente alterado com sucesso!', 'success');
+            } else {
+                mostrarNotificacao('Erro', 'Erro ao alterar status: ' + data.message, 'error');
+            }
+        })
+        .catch(function(error) {
+            mostrarNotificacao('Erro', 'Erro ao processar requisição', 'error');
+            console.error('Error:', error);
+        });
+    };
+    
+    window.modalAction.data = { id: id };
+    
+    abrirModal(
+        'Alterar Status',
+        'Deseja realmente <strong>' + statusTexto + '</strong> este cliente?'
+    );
+}
+
+// Funções de modal
+function abrirModal(titulo, mensagem) {
+    document.getElementById('modalTitle').textContent = titulo;
+    document.getElementById('modalMessage').innerHTML = mensagem;
+    document.getElementById('modalConfirmacao').classList.remove('hidden');
+}
+
+function fecharModal() {
+    document.getElementById('modalConfirmacao').classList.add('hidden');
+    window.modalAction.callback = null;
+    window.modalAction.data = null;
+}
+
+function confirmarAcao() {
+    if (window.modalAction.callback && typeof window.modalAction.callback === 'function') {
+        var callback = window.modalAction.callback;
+        var data = window.modalAction.data;
+        fecharModal();
+        callback(data);
+    } else {
+        fecharModal();
+    }
+}
+
+function mostrarNotificacao(titulo, mensagem, tipo) {
+    tipo = tipo || 'success';
+    var modal = document.getElementById('modalNotificacao');
+    var icon = document.getElementById('iconNotificacao');
+    var iconClass = document.getElementById('iconNotificacaoClass');
+    
+    document.getElementById('notificacaoTitle').textContent = titulo;
+    document.getElementById('notificacaoMessage').textContent = mensagem;
+    
+    if (tipo === 'success') {
+        icon.className = 'mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100';
+        iconClass.className = 'fas fa-check text-green-600 text-xl';
+    } else {
+        icon.className = 'mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100';
+        iconClass.className = 'fas fa-times text-red-600 text-xl';
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function fecharNotificacao() {
+    document.getElementById('modalNotificacao').classList.add('hidden');
+    location.reload();
+}
+
 $(document).ready(function() {
     $('#clientesTable').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json'
+            "sEmptyTable": "Nenhum registro encontrado",
+            "sInfo": "Mostrando de _START_ até _END_ de _TOTAL_ registros",
+            "sInfoEmpty": "Mostrando 0 até 0 de 0 registros",
+            "sInfoFiltered": "(Filtrados de _MAX_ registros)",
+            "sInfoPostFix": "",
+            "sInfoThousands": ".",
+            "sLengthMenu": "_MENU_ resultados por página",
+            "sLoadingRecords": "Carregando...",
+            "sProcessing": "Processando...",
+            "sZeroRecords": "Nenhum registro encontrado",
+            "sSearch": "Pesquisar",
+            "oPaginate": {
+                "sNext": "Próximo",
+                "sPrevious": "Anterior",
+                "sFirst": "Primeiro",
+                "sLast": "Último"
+            },
+            "oAria": {
+                "sSortAscending": ": Ordenar colunas de forma ascendente",
+                "sSortDescending": ": Ordenar colunas de forma descendente"
+            }
         },
         order: [[0, 'asc']],
         pageLength: 25
     });
 });
-
-function toggleStatus(id, currentStatus) {
-    if (confirm('Deseja alterar o status deste cliente?')) {
-        fetch(`/clientes/toggle-status/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Erro ao alterar status: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Erro ao processar requisição');
-            console.error('Error:', error);
-        });
-    }
-}
-
-function deleteCliente(id, nome) {
-    if (confirm(`Tem certeza que deseja excluir o cliente "${nome}"?\n\nEsta ação não pode ser desfeita.`)) {
-        fetch(`/clientes/deletar/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Cliente excluído com sucesso!');
-                location.reload();
-            } else {
-                alert('Erro ao excluir cliente: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Erro ao processar requisição');
-            console.error('Error:', error);
-        });
-    }
-}
 </script>
 {% endblock %}

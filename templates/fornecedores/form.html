@@ -36,6 +36,8 @@
                     <input type="text" name="cnpj" id="cnpj" value="{{ fornecedor.cnpj if fornecedor else '' }}" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
                            placeholder="00.000.000/0000-00">
+                    <small id="cnpj-error" class="text-red-500 text-xs hidden mt-1"></small>
+                    <small id="cnpj-success" class="text-green-600 text-xs hidden mt-1"><i class="fas fa-check-circle"></i> Documento válido</small>
                 </div>
 
                 <!-- Nome -->
@@ -72,15 +74,21 @@
                 <!-- CEP -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">CEP</label>
-                    <input type="text" name="cep" id="cep" value="{{ fornecedor.cep if fornecedor else '' }}"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
-                           placeholder="00000-000">
+                    <div class="relative">
+                        <input type="text" name="cep" id="cep" value="{{ fornecedor.cep if fornecedor else '' }}"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
+                               placeholder="00000-000">
+                        <span id="cep-loading" class="hidden absolute right-3 top-3">
+                            <i class="fas fa-spinner fa-spin text-meetcall-purple"></i>
+                        </span>
+                    </div>
+                    <small id="cep-error" class="text-red-500 text-xs hidden">CEP não encontrado</small>
                 </div>
 
                 <!-- Endereço -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
-                    <input type="text" name="endereco" value="{{ fornecedor.endereco if fornecedor else '' }}"
+                    <input type="text" name="endereco" id="endereco" value="{{ fornecedor.endereco if fornecedor else '' }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                 </div>
 
@@ -101,21 +109,21 @@
                 <!-- Bairro -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Bairro</label>
-                    <input type="text" name="bairro" value="{{ fornecedor.bairro if fornecedor else '' }}"
+                    <input type="text" name="bairro" id="bairro" value="{{ fornecedor.bairro if fornecedor else '' }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                 </div>
 
                 <!-- Cidade -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
-                    <input type="text" name="cidade" value="{{ fornecedor.cidade if fornecedor else '' }}"
+                    <input type="text" name="cidade" id="cidade" value="{{ fornecedor.cidade if fornecedor else '' }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                 </div>
 
                 <!-- Estado -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <select name="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                    <select name="estado" id="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                         <option value="">Selecione</option>
                         {% set estados = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'] %}
                         {% for uf in estados %}
@@ -129,7 +137,7 @@
             <div class="mt-8">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-800">Contatos</h3>
-                    <button type="button" onclick="adicionarContato()" class="bg-meetcall-orange hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm">
+                    <button type="button" onclick="abrirModalContato()" class="bg-meetcall-orange hover:bg-opacity-90 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-plus mr-2"></i>Adicionar Contato
                     </button>
                 </div>
@@ -149,9 +157,131 @@
     </div>
 </div>
 
+<!-- Modal para Adicionar/Editar Contato -->
+<div id="modalContato" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-800" id="modalTitle">Adicionar Contato</h3>
+            <button type="button" onclick="fecharModalContato()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form id="formContato" onsubmit="salvarContato(event)">
+            <input type="hidden" id="contatoIndex" value="">
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Nome <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="contatoNome" required
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
+                    <input type="text" id="contatoCargo"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
+                    <input type="text" id="contatoTelefone"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
+                           placeholder="(00) 00000-0000">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input type="email" id="contatoEmail"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-6 space-x-3">
+                <button type="button" onclick="fecharModalContato()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+                    Cancelar
+                </button>
+                <button type="submit" class="px-4 py-2 bg-meetcall-purple hover:bg-meetcall-purple-dark text-white rounded-lg">
+                    <i class="fas fa-save mr-2"></i>Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div id="modalConfirmacao" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target===this) fecharModalConfirmacao()">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
+        <div class="mt-3">
+            <div class="text-center">
+                <h3 class="text-xl font-bold text-gray-900 mb-4" id="modalConfirmacaoTitle">Confirmar Ação</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-base text-gray-600" id="modalConfirmacaoMessage">Deseja confirmar esta ação?</p>
+                </div>
+                <div class="flex justify-center space-x-3 px-4 py-3">
+                    <button type="button" onclick="fecharModalConfirmacao()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-300">
+                        <i class="fas fa-times mr-2"></i>Cancelar
+                    </button>
+                    <button type="button" id="btnConfirmarExclusao" onclick="confirmarExclusaoContato()"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300">
+                        <i class="fas fa-check mr-2"></i>Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// Gerenciamento de contatos
+// ==================== BUSCA CEP ====================
+document.getElementById('cep').addEventListener('blur', function() {
+    const cep = this.value.replace(/\D/g, '');
+    
+    if (cep.length === 8) {
+        buscarCEP(cep);
+    }
+});
+
+async function buscarCEP(cep) {
+    const loading = document.getElementById('cep-loading');
+    const error = document.getElementById('cep-error');
+    
+    loading.classList.remove('hidden');
+    error.classList.add('hidden');
+    
+    try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
+        
+        if (data.erro) {
+            error.classList.remove('hidden');
+            loading.classList.add('hidden');
+            return;
+        }
+        
+        // Preencher campos automaticamente
+        document.getElementById('endereco').value = data.logradouro || '';
+        document.getElementById('bairro').value = data.bairro || '';
+        document.getElementById('cidade').value = data.localidade || '';
+        document.getElementById('estado').value = data.uf || '';
+        
+        // Focar no campo número
+        document.querySelector('input[name="numero"]').focus();
+        
+    } catch (error) {
+        console.error('Erro ao buscar CEP:', error);
+        document.getElementById('cep-error').classList.remove('hidden');
+    } finally {
+        loading.classList.add('hidden');
+    }
+}
+
+// ==================== GERENCIAMENTO DE CONTATOS ====================
 let contatos = [];
+let editandoIndex = -1;
 
 {% if fornecedor and fornecedor.contatos %}
 contatos = {{ fornecedor.contatos | tojson }};
@@ -178,8 +308,12 @@ function renderContatos() {
                     <div><strong class="text-sm text-gray-700">Email:</strong> <span class="text-sm">${contato.email || '-'}</span></div>
                 </div>
                 <div class="ml-4 space-x-2">
-                    <button type="button" onclick="editarContato(${index})" class="text-blue-600 hover:text-blue-900"><i class="fas fa-edit"></i></button>
-                    <button type="button" onclick="removerContato(${index})" class="text-red-600 hover:text-red-900"><i class="fas fa-trash"></i></button>
+                    <button type="button" onclick="editarContato(${index})" class="text-blue-600 hover:text-blue-900" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" onclick="removerContato(${index})" class="text-red-600 hover:text-red-900" title="Remover">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         `;
@@ -190,40 +324,242 @@ function renderContatos() {
     document.getElementById('contatos_json').value = JSON.stringify(contatos);
 }
 
-function adicionarContato() {
-    const nome = prompt('Nome do contato:');
-    if (!nome) return;
+function abrirModalContato(index = -1) {
+    editandoIndex = index;
+    const modal = document.getElementById('modalContato');
+    const title = document.getElementById('modalTitle');
     
-    const cargo = prompt('Cargo:') || '';
-    const telefone = prompt('Telefone:') || '';
-    const email = prompt('Email:') || '';
+    if (index >= 0) {
+        // Editando
+        title.textContent = 'Editar Contato';
+        const contato = contatos[index];
+        document.getElementById('contatoNome').value = contato.nome || '';
+        document.getElementById('contatoCargo').value = contato.cargo || '';
+        document.getElementById('contatoTelefone').value = contato.telefone || '';
+        document.getElementById('contatoEmail').value = contato.email || '';
+    } else {
+        // Novo contato
+        title.textContent = 'Adicionar Contato';
+        document.getElementById('formContato').reset();
+    }
     
-    contatos.push({ nome, cargo, telefone, email });
+    modal.classList.remove('hidden');
+    document.getElementById('contatoNome').focus();
+}
+
+function fecharModalContato() {
+    document.getElementById('modalContato').classList.add('hidden');
+    document.getElementById('formContato').reset();
+    editandoIndex = -1;
+}
+
+function salvarContato(event) {
+    event.preventDefault();
+    
+    const contato = {
+        nome: document.getElementById('contatoNome').value,
+        cargo: document.getElementById('contatoCargo').value,
+        telefone: document.getElementById('contatoTelefone').value,
+        email: document.getElementById('contatoEmail').value
+    };
+    
+    if (editandoIndex >= 0) {
+        // Editando contato existente
+        contatos[editandoIndex] = contato;
+    } else {
+        // Novo contato
+        contatos.push(contato);
+    }
+    
     renderContatos();
+    fecharModalContato();
 }
 
 function editarContato(index) {
-    const contato = contatos[index];
-    const nome = prompt('Nome do contato:', contato.nome);
-    if (!nome) return;
-    
-    contatos[index] = {
-        nome,
-        cargo: prompt('Cargo:', contato.cargo) || '',
-        telefone: prompt('Telefone:', contato.telefone) || '',
-        email: prompt('Email:', contato.email) || ''
-    };
-    renderContatos();
+    abrirModalContato(index);
 }
+
+// Variável global para armazenar o índice do contato a ser removido
+var indiceContatoRemover = -1;
 
 function removerContato(index) {
-    if (confirm('Remover este contato?')) {
-        contatos.splice(index, 1);
-        renderContatos();
-    }
+    indiceContatoRemover = index;
+    document.getElementById('modalConfirmacaoTitle').textContent = 'Remover Contato';
+    document.getElementById('modalConfirmacaoMessage').innerHTML = 
+        'Tem certeza que deseja remover este contato?<br><br>' +
+        '<span class="text-red-600 font-semibold">⚠️ Esta ação não pode ser desfeita!</span>';
+    document.getElementById('modalConfirmacao').classList.remove('hidden');
 }
 
-// Máscaras
+function confirmarExclusaoContato() {
+    if (indiceContatoRemover >= 0) {
+        contatos.splice(indiceContatoRemover, 1);
+        renderContatos();
+        indiceContatoRemover = -1;
+    }
+    fecharModalConfirmacao();
+}
+
+function fecharModalConfirmacao() {
+    document.getElementById('modalConfirmacao').classList.add('hidden');
+    indiceContatoRemover = -1;
+}
+
+// Fechar modal ao clicar fora
+document.getElementById('modalContato').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fecharModalContato();
+    }
+});
+
+// ==================== VALIDAÇÃO CNPJ/CPF ====================
+function validarCNPJ(cnpj) {
+    cnpj = cnpj.replace(/[^\d]+/g, '');
+    
+    if (cnpj.length !== 14) return false;
+    
+    // Elimina CNPJs invalidos conhecidos
+    if (/^(\d)\1+$/.test(cnpj)) return false;
+    
+    // Valida DVs
+    let tamanho = cnpj.length - 2;
+    let numeros = cnpj.substring(0, tamanho);
+    let digitos = cnpj.substring(tamanho);
+    let soma = 0;
+    let pos = tamanho - 7;
+    
+    for (let i = tamanho; i >= 1; i--) {
+        soma += numeros.charAt(tamanho - i) * pos--;
+        if (pos < 2) pos = 9;
+    }
+    
+    let resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+    if (resultado != digitos.charAt(0)) return false;
+    
+    tamanho = tamanho + 1;
+    numeros = cnpj.substring(0, tamanho);
+    soma = 0;
+    pos = tamanho - 7;
+    
+    for (let i = tamanho; i >= 1; i--) {
+        soma += numeros.charAt(tamanho - i) * pos--;
+        if (pos < 2) pos = 9;
+    }
+    
+    resultado = soma % 11 < 2 ? 0 : 11 - soma % 11;
+    if (resultado != digitos.charAt(1)) return false;
+    
+    return true;
+}
+
+function validarCPF(cpf) {
+    cpf = cpf.replace(/[^\d]+/g, '');
+    
+    if (cpf.length !== 11) return false;
+    
+    // Elimina CPFs invalidos conhecidos
+    if (/^(\d)\1+$/.test(cpf)) return false;
+    
+    // Valida 1o digito
+    let add = 0;
+    for (let i = 0; i < 9; i++) {
+        add += parseInt(cpf.charAt(i)) * (10 - i);
+    }
+    let rev = 11 - (add % 11);
+    if (rev === 10 || rev === 11) rev = 0;
+    if (rev !== parseInt(cpf.charAt(9))) return false;
+    
+    // Valida 2o digito
+    add = 0;
+    for (let i = 0; i < 10; i++) {
+        add += parseInt(cpf.charAt(i)) * (11 - i);
+    }
+    rev = 11 - (add % 11);
+    if (rev === 10 || rev === 11) rev = 0;
+    if (rev !== parseInt(cpf.charAt(10))) return false;
+    
+    return true;
+}
+
+function validarDocumento() {
+    var input = document.getElementById('cnpj');
+    var errorMsg = document.getElementById('cnpj-error');
+    var successMsg = document.getElementById('cnpj-success');
+    var tipoPessoa = document.getElementById('tipo_pessoa').value;
+    var valor = input.value.replace(/\D/g, '');
+    
+    // Limpar mensagens
+    errorMsg.classList.add('hidden');
+    successMsg.classList.add('hidden');
+    input.classList.remove('border-red-500', 'border-green-500');
+    
+    // Se não preencheu, apenas retorna (campo não é obrigatório)
+    if (valor.length === 0) {
+        return true;
+    }
+    
+    var valido = false;
+    var mensagemErro = '';
+    
+    if (tipoPessoa === 'juridica') {
+        if (valor.length !== 14) {
+            mensagemErro = 'CNPJ deve ter 14 dígitos';
+        } else {
+            valido = validarCNPJ(valor);
+            mensagemErro = 'CNPJ inválido';
+        }
+    } else {
+        if (valor.length !== 11) {
+            mensagemErro = 'CPF deve ter 11 dígitos';
+        } else {
+            valido = validarCPF(valor);
+            mensagemErro = 'CPF inválido';
+        }
+    }
+    
+    if (!valido && valor.length > 0) {
+        errorMsg.textContent = mensagemErro;
+        errorMsg.classList.remove('hidden');
+        input.classList.add('border-red-500');
+        return false;
+    } else if (valido) {
+        successMsg.classList.remove('hidden');
+        input.classList.add('border-green-500');
+        return true;
+    }
+    
+    return true;
+}
+
+// Validar ao sair do campo
+document.getElementById('cnpj').addEventListener('blur', validarDocumento);
+
+// Validar ao submeter o formulário
+document.getElementById('fornecedorForm').addEventListener('submit', function(e) {
+    var cnpjInput = document.getElementById('cnpj');
+    var valor = cnpjInput.value.replace(/\D/g, '');
+    
+    // Se preencheu o CNPJ/CPF, deve ser válido
+    if (valor.length > 0) {
+        if (!validarDocumento()) {
+            e.preventDefault();
+            cnpjInput.focus();
+            
+            // Mostrar mensagem de erro
+            var errorMsg = document.getElementById('cnpj-error');
+            errorMsg.classList.remove('hidden');
+            
+            // Scroll para o campo
+            cnpjInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+    }
+    
+    // Preparar JSON de contatos antes de enviar
+    document.getElementById('contatos_json').value = JSON.stringify(contatos);
+});
+
+// ==================== MÁSCARAS ====================
 document.getElementById('cnpj').addEventListener('input', function(e) {
     let val = e.target.value.replace(/\D/g, '');
     const tipoPessoa = document.getElementById('tipo_pessoa').value;
@@ -255,6 +591,16 @@ document.getElementById('telefone').addEventListener('input', function(e) {
     e.target.value = val;
 });
 
+// Máscara para telefone do contato no modal
+document.getElementById('contatoTelefone').addEventListener('input', function(e) {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 11) val = val.substr(0, 11);
+    if (val.length > 10) val = val.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    else if (val.length > 6) val = val.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    else if (val.length > 2) val = val.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+    e.target.value = val;
+});
+
 document.getElementById('cep').addEventListener('input', function(e) {
     let val = e.target.value.replace(/\D/g, '');
     if (val.length > 8) val = val.substr(0, 8);
@@ -275,6 +621,11 @@ document.getElementById('tipo_pessoa').addEventListener('change', function() {
         input.placeholder = '000.000.000-00';
     }
     input.value = '';
+    
+    // Limpar validação
+    document.getElementById('cnpj-error').classList.add('hidden');
+    document.getElementById('cnpj-success').classList.add('hidden');
+    input.classList.remove('border-red-500', 'border-green-500');
 });
 
 // Renderizar contatos ao carregar
