@@ -33,11 +33,15 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2" id="label_cnpj">
                         CNPJ
                     </label>
-                    <input type="text" name="cnpj" id="cnpj" value="{{ fornecedor.cnpj if fornecedor else '' }}" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
-                           placeholder="00.000.000/0000-00">
-                    <small id="cnpj-error" class="text-red-500 text-xs hidden mt-1"></small>
-                    <small id="cnpj-success" class="text-green-600 text-xs hidden mt-1"><i class="fas fa-check-circle"></i> Documento válido</small>
+                    <div class="relative">
+                        <input type="text" name="cnpj" id="cnpj" value="{{ fornecedor.cnpj if fornecedor else '' }}" 
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent"
+                               placeholder="00.000.000/0000-00">
+                        <small id="cnpj-error" class="text-red-500 text-xs absolute -bottom-5 left-0"></small>
+                        <small id="cnpj-success" class="text-green-600 text-xs absolute -bottom-5 left-0 opacity-0 transition-opacity duration-300">
+                            <i class="fas fa-check-circle"></i> Documento válido
+                        </small>
+                    </div>
                 </div>
 
                 <!-- Nome -->
@@ -72,7 +76,7 @@
                 </div>
 
                 <!-- CEP -->
-                <div>
+                <div class="md:col-span-1">
                     <label class="block text-sm font-medium text-gray-700 mb-2">CEP</label>
                     <div class="relative">
                         <input type="text" name="cep" id="cep" value="{{ fornecedor.cep if fornecedor else '' }}"
@@ -86,7 +90,7 @@
                 </div>
 
                 <!-- Endereço -->
-                <div class="md:col-span-2">
+                <div class="md:col-span-1">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
                     <input type="text" name="endereco" id="endereco" value="{{ fornecedor.endereco if fornecedor else '' }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
@@ -105,23 +109,26 @@
                     <input type="text" name="complemento" value="{{ fornecedor.complemento if fornecedor else '' }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                 </div>
+            </div>
 
+            <!-- Bairro, Cidade e Estado na mesma linha -->
+            <div class="flex gap-4 mt-6">
                 <!-- Bairro -->
-                <div>
+                <div class="w-[40%]">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Bairro</label>
                     <input type="text" name="bairro" id="bairro" value="{{ fornecedor.bairro if fornecedor else '' }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                 </div>
 
                 <!-- Cidade -->
-                <div>
+                <div class="w-[40%]">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Cidade</label>
                     <input type="text" name="cidade" id="cidade" value="{{ fornecedor.cidade if fornecedor else '' }}"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                 </div>
 
                 <!-- Estado -->
-                <div>
+                <div class="w-[20%]">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
                     <select name="estado" id="estado" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
                         <option value="">Selecione</option>
@@ -131,6 +138,26 @@
                         {% endfor %}
                     </select>
                 </div>
+            </div>
+
+            <!-- Categoria Padrão -->
+            <div class="mt-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Categoria Padrão <span class="text-red-500">*</span>
+                    <i class="fas fa-info-circle text-gray-400 ml-2" title="Categoria padrão que será preenchida automaticamente ao lançar contas a pagar/receber deste fornecedor"></i>
+                </label>
+                <select name="tipo_servico_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                    <option value="">Selecione uma categoria...</option>
+                    {% if tipos_servicos %}
+                        {% for tipo in tipos_servicos %}
+                            {% if tipo.parent_id is none %}
+                                <option value="{{ tipo.id }}" {% if fornecedor and fornecedor.tipo_servico_id == tipo.id %}selected{% endif %}>
+                                    {{ tipo.nome }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </select>
             </div>
 
             <!-- Seção de Contatos -->
@@ -489,8 +516,9 @@ function validarDocumento() {
     var valor = input.value.replace(/\D/g, '');
     
     // Limpar mensagens
-    errorMsg.classList.add('hidden');
-    successMsg.classList.add('hidden');
+    errorMsg.textContent = '';
+    successMsg.classList.remove('opacity-100');
+    successMsg.classList.add('opacity-0');
     input.classList.remove('border-red-500', 'border-green-500');
     
     // Se não preencheu, apenas retorna (campo não é obrigatório)
@@ -519,12 +547,21 @@ function validarDocumento() {
     
     if (!valido && valor.length > 0) {
         errorMsg.textContent = mensagemErro;
-        errorMsg.classList.remove('hidden');
         input.classList.add('border-red-500');
         return false;
     } else if (valido) {
-        successMsg.classList.remove('hidden');
+        // Mostrar mensagem de sucesso
+        successMsg.classList.remove('opacity-0');
+        successMsg.classList.add('opacity-100');
         input.classList.add('border-green-500');
+        
+        // Ocultar automaticamente após 2 segundos
+        setTimeout(() => {
+            successMsg.classList.remove('opacity-100');
+            successMsg.classList.add('opacity-0');
+            input.classList.remove('border-green-500');
+        }, 2000);
+        
         return true;
     }
     
@@ -623,8 +660,9 @@ document.getElementById('tipo_pessoa').addEventListener('change', function() {
     input.value = '';
     
     // Limpar validação
-    document.getElementById('cnpj-error').classList.add('hidden');
-    document.getElementById('cnpj-success').classList.add('hidden');
+    document.getElementById('cnpj-error').textContent = '';
+    document.getElementById('cnpj-success').classList.remove('opacity-100');
+    document.getElementById('cnpj-success').classList.add('opacity-0');
     input.classList.remove('border-red-500', 'border-green-500');
 });
 

@@ -55,9 +55,13 @@ def novo():
                     flash('CPF inválido!', 'error')
                     return redirect(url_for('fornecedores.novo'))
         
+        # Padronizar nomes para Title Case
+        nome = request.form.get('nome', '').strip()
+        razao_social = request.form.get('razao_social', '').strip()
+        
         dados = {
-            'nome': request.form.get('nome'),
-            'razao_social': request.form.get('razao_social'),
+            'nome': nome.title() if nome else None,
+            'razao_social': razao_social.title() if razao_social else None,
             'cnpj': cnpj,
             'tipo_pessoa': tipo_pessoa,
             'email': request.form.get('email'),
@@ -69,6 +73,7 @@ def novo():
             'bairro': request.form.get('bairro'),
             'cidade': request.form.get('cidade'),
             'estado': request.form.get('estado'),
+            'tipo_servico_id': request.form.get('tipo_servico_id'),
             # contatos: será processado via JSON do campo oculto
             'contatos': []
         }
@@ -84,7 +89,11 @@ def novo():
         FornecedorModel.create(dados)
         flash('Fornecedor criado com sucesso!', 'success')
         return redirect(url_for('fornecedores.lista'))
-    return render_template('fornecedores/form.html')
+    
+    # Buscar tipos de serviços (categorias) para o select
+    from models.tipo_servico import TipoServicoModel
+    tipos_servicos = TipoServicoModel.get_all()
+    return render_template('fornecedores/form.html', tipos_servicos=tipos_servicos)
 
 @fornecedores_bp.route('/editar/<int:fornecedor_id>', methods=['GET', 'POST'])
 @admin_required
@@ -109,9 +118,13 @@ def editar(fornecedor_id):
                     flash('CPF inválido!', 'error')
                     return redirect(url_for('fornecedores.editar', fornecedor_id=fornecedor_id))
         
+        # Padronizar nomes para Title Case
+        nome = request.form.get('nome', '').strip()
+        razao_social = request.form.get('razao_social', '').strip()
+        
         dados = {
-            'nome': request.form.get('nome'),
-            'razao_social': request.form.get('razao_social'),
+            'nome': nome.title() if nome else None,
+            'razao_social': razao_social.title() if razao_social else None,
             'cnpj': cnpj,
             'tipo_pessoa': tipo_pessoa,
             'email': request.form.get('email'),
@@ -123,6 +136,7 @@ def editar(fornecedor_id):
             'bairro': request.form.get('bairro'),
             'cidade': request.form.get('cidade'),
             'estado': request.form.get('estado'),
+            'tipo_servico_id': request.form.get('tipo_servico_id'),
             'contatos': []
         }
         
@@ -137,7 +151,11 @@ def editar(fornecedor_id):
         FornecedorModel.update(fornecedor_id, dados)
         flash('Fornecedor atualizado com sucesso!', 'success')
         return redirect(url_for('fornecedores.lista'))
-    return render_template('fornecedores/form.html', fornecedor=fornecedor)
+    
+    # Buscar tipos de serviços (categorias) para o select
+    from models.tipo_servico import TipoServicoModel
+    tipos_servicos = TipoServicoModel.get_all()
+    return render_template('fornecedores/form.html', fornecedor=fornecedor, tipos_servicos=tipos_servicos)
 
 @fornecedores_bp.route('/deletar/<int:fornecedor_id>', methods=['POST'])
 @admin_required

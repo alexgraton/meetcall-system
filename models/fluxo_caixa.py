@@ -12,7 +12,7 @@ class FluxoCaixaModel:
     """Modelo para análise de fluxo de caixa"""
     
     @staticmethod
-    def get_movimentacoes(data_inicio, data_fim, filial_id=None):
+    def get_movimentacoes(data_inicio, data_fim, filial_id=None, conta_bancaria_id=None):
         """
         Retorna todas as movimentações financeiras consolidadas
         
@@ -20,6 +20,7 @@ class FluxoCaixaModel:
             data_inicio (date): Data inicial do período
             data_fim (date): Data final do período
             filial_id (int): Filtrar por filial (opcional)
+            conta_bancaria_id (int): Filtrar por conta bancária (opcional)
         
         Returns:
             dict: {
@@ -41,7 +42,7 @@ class FluxoCaixaModel:
                 SELECT 
                     cr.id,
                     cr.descricao,
-                    cr.valor_parcela as valor,
+                    cr.valor_total as valor,
                     cr.data_recebimento as data,
                     'conta_receber' as tipo,
                     'realizado' as status,
@@ -50,7 +51,7 @@ class FluxoCaixaModel:
                 FROM contas_receber cr
                 LEFT JOIN clientes c ON cr.cliente_id = c.id
                 LEFT JOIN filiais f ON cr.filial_id = f.id
-                WHERE cr.status = 'recebida'
+                WHERE cr.status = 'recebido'
                   AND cr.data_recebimento BETWEEN %s AND %s
             """
             params = [data_inicio, data_fim]
@@ -58,6 +59,10 @@ class FluxoCaixaModel:
             if filial_id:
                 sql_receber += " AND cr.filial_id = %s"
                 params.append(filial_id)
+            
+            if conta_bancaria_id:
+                sql_receber += " AND cr.conta_bancaria_id = %s"
+                params.append(conta_bancaria_id)
             
             cursor.execute(sql_receber, params)
             entradas.extend(cursor.fetchall())
@@ -67,7 +72,7 @@ class FluxoCaixaModel:
                 SELECT 
                     cr.id,
                     cr.descricao,
-                    cr.valor_parcela as valor,
+                    cr.valor_total as valor,
                     cr.data_vencimento as data,
                     'conta_receber' as tipo,
                     'projetado' as status,
@@ -76,7 +81,7 @@ class FluxoCaixaModel:
                 FROM contas_receber cr
                 LEFT JOIN clientes c ON cr.cliente_id = c.id
                 LEFT JOIN filiais f ON cr.filial_id = f.id
-                WHERE cr.status IN ('pendente', 'vencida')
+                WHERE cr.status IN ('pendente', 'vencido')
                   AND cr.data_vencimento BETWEEN %s AND %s
             """
             params = [data_inicio, data_fim]
@@ -84,6 +89,10 @@ class FluxoCaixaModel:
             if filial_id:
                 sql_receber_projetado += " AND cr.filial_id = %s"
                 params.append(filial_id)
+            
+            if conta_bancaria_id:
+                sql_receber_projetado += " AND cr.conta_bancaria_id = %s"
+                params.append(conta_bancaria_id)
             
             cursor.execute(sql_receber_projetado, params)
             entradas.extend(cursor.fetchall())
@@ -120,7 +129,7 @@ class FluxoCaixaModel:
                 SELECT 
                     cp.id,
                     cp.descricao,
-                    cp.valor_parcela as valor,
+                    cp.valor_total as valor,
                     cp.data_pagamento as data,
                     'conta_pagar' as tipo,
                     'realizado' as status,
@@ -129,7 +138,7 @@ class FluxoCaixaModel:
                 FROM contas_pagar cp
                 LEFT JOIN fornecedores fo ON cp.fornecedor_id = fo.id
                 LEFT JOIN filiais f ON cp.filial_id = f.id
-                WHERE cp.status = 'paga'
+                WHERE cp.status = 'pago'
                   AND cp.data_pagamento BETWEEN %s AND %s
             """
             params = [data_inicio, data_fim]
@@ -137,6 +146,10 @@ class FluxoCaixaModel:
             if filial_id:
                 sql_pagar += " AND cp.filial_id = %s"
                 params.append(filial_id)
+            
+            if conta_bancaria_id:
+                sql_pagar += " AND cp.conta_bancaria_id = %s"
+                params.append(conta_bancaria_id)
             
             cursor.execute(sql_pagar, params)
             saidas.extend(cursor.fetchall())
@@ -146,7 +159,7 @@ class FluxoCaixaModel:
                 SELECT 
                     cp.id,
                     cp.descricao,
-                    cp.valor_parcela as valor,
+                    cp.valor_total as valor,
                     cp.data_vencimento as data,
                     'conta_pagar' as tipo,
                     'projetado' as status,
@@ -155,7 +168,7 @@ class FluxoCaixaModel:
                 FROM contas_pagar cp
                 LEFT JOIN fornecedores fo ON cp.fornecedor_id = fo.id
                 LEFT JOIN filiais f ON cp.filial_id = f.id
-                WHERE cp.status IN ('pendente', 'vencida')
+                WHERE cp.status IN ('pendente', 'vencido')
                   AND cp.data_vencimento BETWEEN %s AND %s
             """
             params = [data_inicio, data_fim]
@@ -163,6 +176,10 @@ class FluxoCaixaModel:
             if filial_id:
                 sql_pagar_projetado += " AND cp.filial_id = %s"
                 params.append(filial_id)
+            
+            if conta_bancaria_id:
+                sql_pagar_projetado += " AND cp.conta_bancaria_id = %s"
+                params.append(conta_bancaria_id)
             
             cursor.execute(sql_pagar_projetado, params)
             saidas.extend(cursor.fetchall())
@@ -227,40 +244,92 @@ class FluxoCaixaModel:
             }
     
     @staticmethod
-    def get_saldo_inicial(data_referencia, filial_id=None):
+    def get_saldo_inicial(data_referencia, filial_id=None, conta_bancaria_id=None):
         """
-        Calcula o saldo inicial baseado nas contas bancárias
+        Calcula o saldo inicial somando movimentações ANTES da data de referência
+        Parte do princípio que contas iniciaram com saldo zero
         
         Args:
-            data_referencia (date): Data de referência
+            data_referencia (date): Data de referência para o saldo inicial
             filial_id (int): Filtrar por filial (opcional)
+            conta_bancaria_id (int): Filtrar por conta bancária (opcional)
         
         Returns:
-            Decimal: Saldo inicial das contas bancárias
+            Decimal: Saldo inicial na data de referência
         """
         db = DatabaseManager()
         
         with db.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
             
-            sql = """
-                SELECT COALESCE(SUM(saldo_atual), 0) as saldo_total
-                FROM contas_bancarias
-                WHERE ativo = 1
+            # Calcular movimentações ANTES da data de referência
+            # Contas recebidas antes da data
+            sql_recebimentos = """
+                SELECT COALESCE(SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)), 0) as total
+                FROM contas_receber
+                WHERE status = 'recebido' AND data_recebimento < %s
+            """
+            params_mov = [data_referencia]
+            
+            if filial_id:
+                sql_recebimentos += " AND filial_id = %s"
+                params_mov.append(filial_id)
+            
+            if conta_bancaria_id:
+                sql_recebimentos += " AND conta_bancaria_id = %s"
+                params_mov.append(conta_bancaria_id)
+            
+            cursor.execute(sql_recebimentos, params_mov)
+            recebimentos_anteriores = Decimal(str(cursor.fetchone()['total']))
+            
+            # Contas pagas antes da data
+            params_mov = [data_referencia]
+            if filial_id:
+                params_mov.append(filial_id)
+            if conta_bancaria_id:
+                params_mov.append(conta_bancaria_id)
+                
+            sql_pagamentos = """
+                SELECT COALESCE(SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)), 0) as total
+                FROM contas_pagar
+                WHERE status = 'pago' AND data_pagamento < %s
             """
             
-            params = []
             if filial_id:
-                sql += " AND filial_id = %s"
-                params.append(filial_id)
+                sql_pagamentos += " AND filial_id = %s"
             
-            cursor.execute(sql, params if params else None)
-            resultado = cursor.fetchone()
+            if conta_bancaria_id:
+                sql_pagamentos += " AND conta_bancaria_id = %s"
             
-            return Decimal(str(resultado['saldo_total']))
+            cursor.execute(sql_pagamentos, params_mov)
+            pagamentos_anteriores = Decimal(str(cursor.fetchone()['total']))
+            
+            # Lançamentos manuais antes da data
+            params_mov = [data_referencia]
+            if filial_id:
+                params_mov.append(filial_id)
+                
+            sql_lancamentos = """
+                SELECT COALESCE(SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE -valor END), 0) as total
+                FROM lancamentos_manuais
+                WHERE data_lancamento < %s
+            """
+            
+            if filial_id:
+                sql_lancamentos += " AND filial_id = %s"
+            
+            cursor.execute(sql_lancamentos, params_mov)
+            lancamentos_anteriores = Decimal(str(cursor.fetchone()['total']))
+            
+            cursor.close()
+            
+            # Saldo inicial = Recebimentos anteriores - Pagamentos anteriores + Lançamentos anteriores
+            saldo_inicial = recebimentos_anteriores - pagamentos_anteriores + lancamentos_anteriores
+            
+            return saldo_inicial
     
     @staticmethod
-    def get_projecao_diaria(data_inicio, data_fim, filial_id=None):
+    def get_projecao_diaria(data_inicio, data_fim, filial_id=None, conta_bancaria_id=None):
         """
         Retorna projeção diária de saldo
         
@@ -268,12 +337,13 @@ class FluxoCaixaModel:
             data_inicio (date): Data inicial
             data_fim (date): Data final
             filial_id (int): Filtrar por filial (opcional)
+            conta_bancaria_id (int): Filtrar por conta bancária (opcional)
         
         Returns:
             list: Lista de dicionários com data e saldo projetado
         """
-        movimentacoes = FluxoCaixaModel.get_movimentacoes(data_inicio, data_fim, filial_id)
-        saldo_atual = FluxoCaixaModel.get_saldo_inicial(data_inicio, filial_id)
+        movimentacoes = FluxoCaixaModel.get_movimentacoes(data_inicio, data_fim, filial_id, conta_bancaria_id)
+        saldo_atual = FluxoCaixaModel.get_saldo_inicial(data_inicio, filial_id, conta_bancaria_id)
         
         # Agrupar movimentações por data
         mov_por_data = {}

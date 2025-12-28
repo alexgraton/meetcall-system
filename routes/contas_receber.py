@@ -14,6 +14,14 @@ from models.filial import FilialModel
 
 contas_receber_bp = Blueprint('contas_receber', __name__, url_prefix='/contas-receber')
 
+def converter_valor_brasileiro(valor_str):
+    """Converte valor formatado em pt-BR (1.500,00) para Decimal"""
+    if not valor_str:
+        return Decimal('0')
+    # Remove pontos (separador de milhar) e substitui vírgula por ponto
+    valor_limpo = valor_str.replace('.', '').replace(',', '.')
+    return Decimal(valor_limpo)
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -86,13 +94,14 @@ def nova():
             # Coletar dados do formulário
             dados = {
                 'cliente_id': int(request.form['cliente_id']),
+                'cliente_produto_id': int(request.form['cliente_produto_id']) if request.form.get('cliente_produto_id') else None,
                 'filial_id': int(request.form['filial_id']) if request.form.get('filial_id') else None,
                 'tipo_servico_id': int(request.form['tipo_servico_id']) if request.form.get('tipo_servico_id') else None,
                 'centro_custo_id': int(request.form['centro_custo_id']) if request.form.get('centro_custo_id') else None,
                 'conta_contabil_id': int(request.form['conta_contabil_id']) if request.form.get('conta_contabil_id') else None,
                 'descricao': request.form['descricao'],
                 'numero_documento': request.form.get('numero_documento'),
-                'valor_total': Decimal(request.form['valor_total']),
+                'valor_total': converter_valor_brasileiro(request.form['valor_total']),
                 'data_emissao': datetime.strptime(request.form['data_emissao'], '%Y-%m-%d').date(),
                 'data_vencimento': datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date(),
                 'numero_parcelas': int(request.form.get('numero_parcelas', 1)),
@@ -118,7 +127,22 @@ def nova():
             flash(f'Erro ao criar conta: {str(e)}', 'error')
     
     # GET - Exibir formulário
-    clientes = ClienteModel.get_all()
+    from database import DatabaseManager
+    
+    # Buscar clientes com seus produtos
+    db = DatabaseManager()
+    with db.get_connection() as conn:
+        cursor = conn.cursor(dictionary=True)
+        
+        # Buscar todos os clientes ativos
+        cursor.execute("SELECT id, nome, razao_social FROM clientes WHERE is_active = 1 ORDER BY nome")
+        clientes = cursor.fetchall()
+        
+        # Para cada cliente, buscar seus produtos
+        for cliente in clientes:
+            cursor.execute("SELECT id, nome FROM cliente_produtos WHERE cliente_id = %s ORDER BY nome", (cliente['id'],))
+            cliente['produtos'] = cursor.fetchall()
+    
     filiais = FilialModel.get_all()
     tipos_servicos = TipoServicoModel.get_all()
     centros_custos = CentroCustoModel.get_all()
@@ -150,23 +174,60 @@ def receber(conta_id):
     
     if request.method == 'POST':
         try:
+            # Validar conta bancária
+            if not request.form.get('conta_bancaria_id'):
+                flash('Conta bancária é obrigatória para registrar recebimento!', 'error')
+                return redirect(url_for('contas_receber.receber', conta_id=conta_id))
+            
+            # Calcular valor total recebido - com conversão segura
+            valor_original = Decimal(str(conta['valor_total']))
+            
+            # Converter valores com tratamento de campos vazios
+            valor_juros_str = request.form.get('valor_juros', '0').strip()
+            valor_multa_str = request.form.get('valor_multa', '0').strip()
+            valor_desconto_str = request.form.get('valor_desconto', '0').strip()
+            
+            valor_juros = Decimal(valor_juros_str) if valor_juros_str and valor_juros_str != '' else Decimal('0')
+            valor_multa = Decimal(valor_multa_str) if valor_multa_str and valor_multa_str != '' else Decimal('0')
+            valor_desconto = Decimal(valor_desconto_str) if valor_desconto_str and valor_desconto_str != '' else Decimal('0')
+            
+            valor_pago = valor_original + valor_juros + valor_multa - valor_desconto
+            
             dados_recebimento = {
+                'conta_bancaria_id': int(request.form['conta_bancaria_id']),
                 'data_recebimento': datetime.strptime(request.form['data_recebimento'], '%Y-%m-%d').date(),
-                'valor_pago': Decimal(request.form['valor_pago']),
-                'valor_juros': Decimal(request.form.get('valor_juros', 0)),
-                'valor_multa': Decimal(request.form.get('valor_multa', 0)),
-                'valor_desconto': Decimal(request.form.get('valor_desconto', 0))
+                'valor_pago': valor_pago,
+                'valor_juros': valor_juros,
+                'valor_multa': valor_multa,
+                'valor_desconto': valor_desconto
             }
             
+            # Registrar recebimento
             ContaReceberModel.receber(conta_id, dados_recebimento)
-            flash('Recebimento registrado com sucesso!', 'success')
+            
+            # Movimentar conta bancária (creditar)
+            from models.conta_bancaria import ContaBancariaModel
+            try:
+                ContaBancariaModel.creditar(
+                    dados_recebimento['conta_bancaria_id'],
+                    valor_pago
+                )
+                flash(f'✅ Recebimento registrado com sucesso! Saldo da conta bancária atualizado.', 'success')
+            except ValueError as e:
+                flash(f'⚠️ Recebimento registrado, mas erro ao atualizar saldo: {str(e)}', 'warning')
+            
             return redirect(url_for('contas_receber.lista'))
             
         except Exception as e:
             flash(f'Erro ao registrar recebimento: {str(e)}', 'error')
     
+    # Buscar contas bancárias ativas
+    from models.conta_bancaria import ContaBancariaModel
+    contas_bancarias = ContaBancariaModel.get_all({'ativo': True})
+    
     return render_template('contas_receber/receber.html',
                          conta=conta,
+                         contas_bancarias=contas_bancarias,
                          today=date.today().strftime('%Y-%m-%d'))
 
 @contas_receber_bp.route('/<int:conta_id>/cancelar', methods=['POST'])
@@ -233,3 +294,61 @@ def api_calcular_juros(conta_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+@contas_receber_bp.route('/<int:conta_id>/ratear', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def ratear(conta_id):
+    """Tela para ratear uma receita entre produtos do cliente"""
+    from models.rateio import RateioModel
+    
+    conta = ContaReceberModel.get_by_id(conta_id)
+    
+    if not conta:
+        flash('Conta não encontrada.', 'error')
+        return redirect(url_for('contas_receber.lista'))
+    
+    if conta.get('cliente_produto_id'):
+        flash('Esta receita já está vinculada a um produto específico.', 'warning')
+        return redirect(url_for('contas_receber.lista'))
+    
+    if conta.get('is_rateada'):
+        flash('Esta receita já foi rateada.', 'warning')
+        return redirect(url_for('contas_receber.lista'))
+    
+    if request.method == 'POST':
+        try:
+            rateios_data = request.get_json()
+            
+            resultado = RateioModel.create_rateio(
+                conta_receber_id=conta_id,
+                rateios=rateios_data['rateios'],
+                created_by=session.get('user_id')
+            )
+            
+            return jsonify(resultado)
+            
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 400
+    
+    # GET - Exibir tela de rateio
+    cliente = ClienteModel.get_by_id(conta['cliente_id'])
+    produtos = cliente.get('produtos', []) if cliente else []
+    
+    # Buscar rateio existente (se houver)
+    rateio_existente = RateioModel.get_rateio_by_conta(conta_id)
+    
+    return render_template('contas_receber/ratear.html',
+                         conta=conta,
+                         cliente=cliente,
+                         produtos=produtos,
+                         rateio_existente=rateio_existente)
+
+@contas_receber_bp.route('/api/produtos-cliente/<int:cliente_id>')
+@login_required
+def api_produtos_cliente(cliente_id):
+    """API para buscar produtos de um cliente"""
+    cliente = ClienteModel.get_by_id(cliente_id)
+    if cliente and cliente.get('produtos'):
+        return jsonify({'produtos': cliente['produtos']})
+    return jsonify({'produtos': []})

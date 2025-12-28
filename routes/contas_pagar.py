@@ -4,6 +4,7 @@ Rotas para gerenciamento de Contas a Pagar
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from functools import wraps
 from datetime import datetime, date
+from decimal import Decimal
 from models.conta_pagar import ContaPagarModel
 from models.fornecedor import FornecedorModel
 from models.tipo_servico import TipoServicoModel
@@ -12,6 +13,15 @@ from models.plano_conta import PlanoContaModel
 from models.filial import FilialModel
 
 contas_pagar_bp = Blueprint('contas_pagar', __name__, url_prefix='/contas-pagar')
+
+def converter_valor_brasileiro(valor_str):
+    """Converte valor formatado em pt-BR (1.500,00) para Decimal"""
+    if not valor_str:
+        return 0
+    # Remove pontos (separador de milhar) e substitui vírgula por ponto
+    from decimal import Decimal
+    valor_limpo = valor_str.replace('.', '').replace(',', '.')
+    return Decimal(valor_limpo)
 
 def login_required(f):
     @wraps(f)
@@ -93,7 +103,7 @@ def nova():
             'descricao': request.form.get('descricao'),
             'numero_documento': request.form.get('numero_documento'),
             'observacoes': request.form.get('observacoes'),
-            'valor_total': request.form.get('valor_total'),
+            'valor_total': converter_valor_brasileiro(request.form.get('valor_total')),
             'numero_parcelas': int(request.form.get('numero_parcelas', 1)),
             'recorrente': request.form.get('recorrente') == 'on',
             'tipo_recorrencia': request.form.get('tipo_recorrencia') or None,
@@ -131,27 +141,59 @@ def nova():
 @admin_required
 def baixar(conta_id):
     if request.method == 'POST':
-        dados_baixa = {
-            'data_pagamento': request.form.get('data_pagamento'),
-            'valor_desconto': request.form.get('valor_desconto', 0)
-        }
-        
-        resultado = ContaPagarModel.baixar(conta_id, dados_baixa)
-        
-        if resultado['success']:
-            flash(resultado['message'], 'success')
-        else:
-            flash(f"Erro ao registrar pagamento: {resultado['message']}", 'error')
+        try:
+            # Validar conta bancária
+            if not request.form.get('conta_bancaria_id'):
+                flash('Conta bancária é obrigatória para registrar pagamento!', 'error')
+                return redirect(url_for('contas_pagar.baixar', conta_id=conta_id))
+            
+            # Converter valores com tratamento de campos vazios
+            valor_desconto_str = request.form.get('valor_desconto', '0').strip()
+            valor_desconto = valor_desconto_str if valor_desconto_str and valor_desconto_str != '' else '0'
+            
+            dados_baixa = {
+                'conta_bancaria_id': int(request.form['conta_bancaria_id']),
+                'data_pagamento': request.form.get('data_pagamento'),
+                'valor_desconto': valor_desconto
+            }
+            
+            # Registrar baixa na conta a pagar
+            resultado = ContaPagarModel.baixar(conta_id, dados_baixa)
+            
+            if resultado['success']:
+                # Movimentar conta bancária (debitar)
+                from models.conta_bancaria import ContaBancariaModel
+                try:
+                    ContaBancariaModel.debitar(
+                        dados_baixa['conta_bancaria_id'],
+                        Decimal(str(resultado['valor_pago']))
+                    )
+                    flash(f"✅ {resultado['message']} Saldo da conta bancária atualizado.", 'success')
+                except ValueError as e:
+                    flash(f"⚠️ Pagamento registrado, mas erro ao atualizar saldo: {str(e)}", 'warning')
+            else:
+                flash(f"Erro ao registrar pagamento: {resultado['message']}", 'error')
+            
+        except Exception as e:
+            flash(f"Erro ao processar pagamento: {str(e)}", 'error')
         
         return redirect(url_for('contas_pagar.lista'))
     
-    # GET - mostrar modal de baixa
+    # GET - mostrar formulário de baixa
     conta = ContaPagarModel.get_by_id(conta_id)
     if not conta:
         flash('Conta não encontrada', 'error')
         return redirect(url_for('contas_pagar.lista'))
     
-    return render_template('contas_pagar/baixar.html', conta=conta)
+    # Buscar contas bancárias ativas
+    from models.conta_bancaria import ContaBancariaModel
+    contas_bancarias = ContaBancariaModel.get_all({'ativo': True})
+    
+    from datetime import date
+    return render_template('contas_pagar/baixar.html', 
+                         conta=conta, 
+                         contas_bancarias=contas_bancarias,
+                         today=date.today().strftime('%Y-%m-%d'))
 
 @contas_pagar_bp.route('/cancelar/<int:conta_id>', methods=['POST'])
 @login_required

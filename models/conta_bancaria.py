@@ -207,6 +207,86 @@ class ContaBancariaModel:
             return cursor.rowcount > 0
     
     @staticmethod
+    def debitar(conta_id, valor):
+        """
+        Debita valor da conta bancária (para pagamentos)
+        
+        Args:
+            conta_id (int): ID da conta bancária
+            valor (Decimal): Valor a debitar
+        
+        Returns:
+            bool: True se debitado com sucesso
+        
+        Raises:
+            ValueError: Se conta não existir ou saldo insuficiente
+        """
+        db = DatabaseManager()
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Buscar saldo atual
+            cursor.execute("SELECT saldo_atual FROM contas_bancarias WHERE id = %s AND ativo = 1", (conta_id,))
+            conta = cursor.fetchone()
+            
+            if not conta:
+                raise ValueError(f"Conta bancária {conta_id} não encontrada ou inativa")
+            
+            saldo_atual = Decimal(str(conta['saldo_atual']))
+            valor_decimal = Decimal(str(valor))
+            novo_saldo = saldo_atual - valor_decimal
+            
+            # Atualizar saldo
+            cursor.execute(
+                "UPDATE contas_bancarias SET saldo_atual = %s WHERE id = %s",
+                (novo_saldo, conta_id)
+            )
+            conn.commit()
+            
+            return True
+    
+    @staticmethod
+    def creditar(conta_id, valor):
+        """
+        Credita valor na conta bancária (para recebimentos)
+        
+        Args:
+            conta_id (int): ID da conta bancária
+            valor (Decimal): Valor a creditar
+        
+        Returns:
+            bool: True se creditado com sucesso
+        
+        Raises:
+            ValueError: Se conta não existir
+        """
+        db = DatabaseManager()
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Buscar saldo atual
+            cursor.execute("SELECT saldo_atual FROM contas_bancarias WHERE id = %s AND ativo = 1", (conta_id,))
+            conta = cursor.fetchone()
+            
+            if not conta:
+                raise ValueError(f"Conta bancária {conta_id} não encontrada ou inativa")
+            
+            saldo_atual = Decimal(str(conta['saldo_atual']))
+            valor_decimal = Decimal(str(valor))
+            novo_saldo = saldo_atual + valor_decimal
+            
+            # Atualizar saldo
+            cursor.execute(
+                "UPDATE contas_bancarias SET saldo_atual = %s WHERE id = %s",
+                (novo_saldo, conta_id)
+            )
+            conn.commit()
+            
+            return True
+    
+    @staticmethod
     def ajustar_saldo(conta_id, valor, operacao='credito', descricao=None):
         """
         Ajusta o saldo de uma conta bancária

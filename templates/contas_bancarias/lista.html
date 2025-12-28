@@ -160,12 +160,10 @@
                                class="text-green-600 hover:text-green-800" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </a>
-                            {% if conta.ativo %}
-                            <button onclick="excluirConta({{ conta.id }})" 
+                            <button onclick="abrirModalExcluir({{ conta.id }}, '{{ conta.numero_conta }}')" 
                                     class="text-red-600 hover:text-red-800" title="Desativar">
                                 <i class="fas fa-ban"></i>
                             </button>
-                            {% endif %}
                         </div>
                     </td>
                 </tr>
@@ -181,15 +179,65 @@
     </div>
 </div>
 
+<!-- Modal de Confirmação -->
+<div id="modalExcluir" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Desativar Conta Bancária</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    Tem certeza que deseja desativar a conta <strong id="contaNumero"></strong>?
+                </p>
+                <p class="text-xs text-gray-400 mt-2">
+                    Esta ação pode ser revertida posteriormente.
+                </p>
+            </div>
+            <div class="flex justify-center gap-4 px-4 py-3">
+                <button onclick="fecharModalExcluir()" 
+                        class="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none">
+                    Cancelar
+                </button>
+                <button onclick="confirmarExclusao()" 
+                        class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none">
+                    Desativar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-function excluirConta(contaId) {
-    if (confirm('Tem certeza que deseja desativar esta conta bancária?')) {
+let contaIdParaExcluir = null;
+
+function abrirModalExcluir(contaId, numeroConta) {
+    contaIdParaExcluir = contaId;
+    document.getElementById('contaNumero').textContent = numeroConta;
+    document.getElementById('modalExcluir').classList.remove('hidden');
+}
+
+function fecharModalExcluir() {
+    document.getElementById('modalExcluir').classList.add('hidden');
+    contaIdParaExcluir = null;
+}
+
+function confirmarExclusao() {
+    if (contaIdParaExcluir) {
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = `/contas_bancarias/${contaId}/excluir`;
+        form.action = `/contas_bancarias/${contaIdParaExcluir}/excluir`;
         document.body.appendChild(form);
         form.submit();
     }
 }
+
+// Fechar modal ao clicar fora dele
+document.getElementById('modalExcluir').addEventListener('click', function(event) {
+    if (event.target === this) {
+        fecharModalExcluir();
+    }
+});
 </script>
 {% endblock %}

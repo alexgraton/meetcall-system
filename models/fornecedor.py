@@ -22,8 +22,8 @@ class FornecedorModel:
 
             query = """
                 INSERT INTO fornecedores
-                (codigo, nome, razao_social, cnpj, tipo_pessoa, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, is_active)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+                (codigo, nome, razao_social, cnpj, tipo_pessoa, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, tipo_servico_id, is_active)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
             """
             cursor.execute(query, (
                 dados.get('codigo'),
@@ -39,7 +39,8 @@ class FornecedorModel:
                 dados.get('complemento'),
                 dados.get('bairro'),
                 dados.get('cidade'),
-                dados.get('estado')
+                dados.get('estado'),
+                dados.get('tipo_servico_id') or None
             ))
             conn.commit()
             fornecedor_id = cursor.lastrowid
@@ -86,13 +87,14 @@ class FornecedorModel:
             query = """
                 UPDATE fornecedores
                 SET nome=%s, razao_social=%s, cnpj=%s, tipo_pessoa=%s, email=%s, telefone=%s,
-                    cep=%s, endereco=%s, numero=%s, complemento=%s, bairro=%s, cidade=%s, estado=%s, updated_at=NOW()
+                    cep=%s, endereco=%s, numero=%s, complemento=%s, bairro=%s, cidade=%s, estado=%s, tipo_servico_id=%s, updated_at=NOW()
                 WHERE id=%s
             """
             cursor.execute(query, (
                 dados.get('nome'), dados.get('razao_social'), dados.get('cnpj'), dados.get('tipo_pessoa', 'juridica'),
                 dados.get('email'), dados.get('telefone'), dados.get('cep'), dados.get('endereco'), dados.get('numero'),
-                dados.get('complemento'), dados.get('bairro'), dados.get('cidade'), dados.get('estado'), fornecedor_id
+                dados.get('complemento'), dados.get('bairro'), dados.get('cidade'), dados.get('estado'), 
+                dados.get('tipo_servico_id') or None, fornecedor_id
             ))
             # atualizar contatos: estratégia simples -> apagar os existentes e inserir os novos
             cursor.execute("DELETE FROM fornecedor_contatos WHERE fornecedor_id = %s", (fornecedor_id,))

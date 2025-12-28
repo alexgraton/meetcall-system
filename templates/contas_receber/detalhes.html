@@ -171,7 +171,7 @@
     <!-- Ações -->
     <div class="flex justify-end space-x-4 pt-6 border-t mt-6">
         {% if conta.status in ['pendente', 'vencido'] %}
-        <a href="{{ url_for('contas_receber.baixar', conta_id=conta.id) }}" 
+        <a href="{{ url_for('contas_receber.receber', conta_id=conta.id) }}" 
            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition duration-300">
             <i class="fas fa-dollar-sign mr-2"></i>Dar Baixa
         </a>

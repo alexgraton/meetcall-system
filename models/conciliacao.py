@@ -29,6 +29,19 @@ class Conciliacao:
         with db.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
             
+            # Verificar se já existe uma conciliação com o mesmo arquivo e conta
+            cursor.execute("""
+                SELECT id FROM conciliacoes_bancarias
+                WHERE conta_bancaria_id = %s 
+                AND nome_arquivo LIKE %s
+            """, (conta_bancaria_id, f'%{nome_arquivo}'))
+            
+            conciliacao_existente = cursor.fetchone()
+            
+            if conciliacao_existente:
+                cursor.close()
+                raise ValueError(f'O arquivo "{nome_arquivo}" já foi importado anteriormente para esta conta.')
+            
             # Calcular período
             datas = [t['data_transacao'] for t in transacoes]
             periodo_inicio = min(datas)
@@ -114,13 +127,13 @@ class Conciliacao:
                             descricao,
                             numero_documento as documento,
                             data_pagamento as data_transacao,
-                            (valor_total - valor_desconto + valor_juros + valor_multa) as valor,
+                            (valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)) as valor,
                             conciliado
                         FROM contas_pagar
-                        WHERE status = 'paga'
+                        WHERE status = 'pago'
                         AND conciliado = 0
                         AND data_pagamento BETWEEN %s AND %s
-                        AND (valor_total - valor_desconto + valor_juros + valor_multa) BETWEEN %s AND %s
+                        AND (valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)) BETWEEN %s AND %s
                     """, (data_min, data_max, valor_min, valor_max))
                     
                     candidatos.extend(cursor.fetchall())
@@ -135,13 +148,13 @@ class Conciliacao:
                             descricao,
                             numero_documento as documento,
                             data_recebimento as data_transacao,
-                            (valor_total - valor_desconto + valor_juros + valor_multa) as valor,
+                            (valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)) as valor,
                             conciliado
                         FROM contas_receber
-                        WHERE status = 'recebida'
+                        WHERE status = 'recebido'
                         AND conciliado = 0
                         AND data_recebimento BETWEEN %s AND %s
-                        AND (valor_total - valor_desconto + valor_juros + valor_multa) BETWEEN %s AND %s
+                        AND (valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)) BETWEEN %s AND %s
                     """, (data_min, data_max, valor_min, valor_max))
                     
                     candidatos.extend(cursor.fetchall())
@@ -350,10 +363,14 @@ class Conciliacao:
                     c.*,
                     cb.banco,
                     cb.agencia,
-                    cb.conta,
-                    cb.nome as conta_nome
+                    cb.numero_conta,
+                    cb.descricao as conta_nome,
+                    COUNT(te.id) as total_transacoes_real,
+                    SUM(CASE WHEN te.status_conciliacao = 'conciliada' THEN 1 ELSE 0 END) as total_conciliadas_real,
+                    SUM(CASE WHEN te.status_conciliacao = 'pendente' THEN 1 ELSE 0 END) as total_pendentes_real
                 FROM conciliacoes_bancarias c
                 INNER JOIN contas_bancarias cb ON c.conta_bancaria_id = cb.id
+                LEFT JOIN transacoes_extrato te ON te.conciliacao_id = c.id
             """
             params = []
             
@@ -361,11 +378,18 @@ class Conciliacao:
                 query += " WHERE c.conta_bancaria_id = %s"
                 params.append(conta_bancaria_id)
             
-            query += " ORDER BY c.data_importacao DESC LIMIT %s"
+            query += " GROUP BY c.id ORDER BY c.data_importacao DESC LIMIT %s"
             params.append(limit)
             
             cursor.execute(query, params)
             conciliacoes = cursor.fetchall()
+            
+            # Substituir valores antigos pelos calculados
+            for conc in conciliacoes:
+                conc['total_transacoes'] = conc['total_transacoes_real']
+                conc['total_conciliadas'] = conc['total_conciliadas_real']
+                conc['total_pendentes'] = conc['total_pendentes_real']
+            
             cursor.close()
             
             return conciliacoes
@@ -384,8 +408,8 @@ class Conciliacao:
                     c.*,
                     cb.banco,
                     cb.agencia,
-                    cb.conta,
-                    cb.nome as conta_nome
+                    cb.numero_conta,
+                    cb.descricao as conta_nome
                 FROM conciliacoes_bancarias c
                 INNER JOIN contas_bancarias cb ON c.conta_bancaria_id = cb.id
                 WHERE c.id = %s
@@ -403,7 +427,14 @@ class Conciliacao:
                 ORDER BY data_transacao DESC, id DESC
             """, (conciliacao_id,))
             
-            conciliacao['transacoes'] = cursor.fetchall()
+            transacoes = cursor.fetchall()
+            conciliacao['transacoes'] = transacoes
+            
+            # Calcular totalizadores dinamicamente
+            conciliacao['total_transacoes'] = len(transacoes)
+            conciliacao['total_conciliadas'] = sum(1 for t in transacoes if t.get('status_conciliacao') == 'conciliada')
+            conciliacao['total_pendentes'] = sum(1 for t in transacoes if t.get('status_conciliacao') == 'pendente')
+            
             cursor.close()
             
             return conciliacao

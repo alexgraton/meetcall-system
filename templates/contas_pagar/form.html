@@ -11,16 +11,6 @@
         </a>
     </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div id="flash-message" class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
     <form method="POST" class="space-y-6">
         <!-- Informações Principais -->
         <div class="border-b pb-6">
@@ -31,7 +21,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Fornecedor <span class="text-red-500">*</span>
                     </label>
-                    <select name="fornecedor_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <select name="fornecedor_id" id="fornecedor_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
                         <option value="">Selecione...</option>
                         {% for fornecedor in fornecedores %}
                             <option value="{{ fornecedor.id }}">{{ fornecedor.razao_social or fornecedor.nome }}</option>
@@ -72,27 +62,22 @@
             <!-- Explicação -->
             <div class="mb-4 p-3 bg-blue-50 border-l-4 border-blue-400 text-sm text-gray-700">
                 <p class="mb-1"><strong>💡 Dica:</strong></p>
-                <p class="mb-1"><strong>Tipo de Serviço:</strong> Categoria da despesa (ex: Telefonia, Aluguel, Manutenção)</p>
+                <p class="mb-1"><strong>Tipo de Serviço:</strong> Ao selecionar um fornecedor, apenas a categoria padrão dele e suas subcategorias serão exibidas aqui. Se o fornecedor não tiver categoria padrão, todas as opções serão mostradas.</p>
                 <p><strong>Centro de Custo:</strong> Departamento que gerou a despesa (ex: Vendas, TI, Administrativo)</p>
             </div>
             
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
-                    <select id="categoria_servico" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
-                        <option value="">Selecione uma categoria...</option>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo de Serviço <span class="text-red-500">*</span>
+                    </label>
+                    <select name="tipo_servico_id" id="tipo_servico_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                        <option value="">Selecione um tipo de serviço...</option>
                         {% for tipo in tipos_servicos %}
-                            {% if tipo.parent_id is none %}
-                                <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
-                            {% endif %}
+                            <option value="{{ tipo.id }}" data-parent="{{ tipo.parent_id or '' }}">
+                                {% if tipo.parent_id %}→ {% endif %}{{ tipo.nome }}
+                            </option>
                         {% endfor %}
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Serviço</label>
-                    <select name="tipo_servico_id" id="tipo_servico_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple" disabled>
-                        <option value="">Selecione categoria primeiro...</option>
                     </select>
                 </div>
 
@@ -125,20 +110,23 @@
         <div class="border-b pb-6">
             <h2 class="text-xl font-semibold text-gray-800 mb-4">Valores e Datas</h2>
             
-            <div class="grid grid-cols-4 gap-4">
+            <div class="grid grid-cols-5 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Valor Total <span class="text-red-500">*</span>
                     </label>
-                    <input type="number" name="valor_total" required step="0.01" min="0.01" placeholder="0.00"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <div class="relative">
+                        <span class="absolute left-3 top-2.5 text-gray-500">R$</span>
+                        <input type="text" name="valor_total" id="valor_total" required placeholder="0,00"
+                               class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    </div>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Data de Emissão <span class="text-red-500">*</span>
                     </label>
-                    <input type="date" name="data_emissao" required
+                    <input type="date" name="data_emissao" id="data_emissao" required
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
                 </div>
 
@@ -151,10 +139,19 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Referência <span class="text-red-500">*</span>
+                        <i class="fas fa-info-circle text-gray-400 text-xs" title="Período de competência para análise gerencial"></i>
+                    </label>
+                    <input type="text" name="referencia" id="referencia" required placeholder="MM/AAAA"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                </div>
+
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Número de Parcelas</label>
                     <input type="number" name="numero_parcelas" min="1" value="1"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
-                    <p class="text-xs text-gray-500 mt-1">Parcelas com intervalo de 30 dias</p>
+                    <p class="text-xs text-gray-500 mt-1">Intervalo de 30 dias</p>
                 </div>
             </div>
         </div>
@@ -226,57 +223,159 @@
 </div>
 
 <script>
-// Dados dos tipos de serviços em formato JSON
+// Dados dos tipos de serviços e fornecedores em formato JSON
 const tiposServicos = {{ tipos_servicos | tojson }};
+const fornecedores = {{ fornecedores | tojson }};
 
-// Select em cascata: Categoria -> Tipo de Serviço
-document.getElementById('categoria_servico').addEventListener('change', function() {
-    const categoriaId = parseInt(this.value);
-    const tipoServicoSelect = document.getElementById('tipo_servico_id');
+// Função para formatar valor como moeda brasileira
+function formatarMoeda(input) {
+    let valor = input.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+    valor = (parseInt(valor) / 100).toFixed(2); // Divide por 100 para ter centavos
     
-    // Limpar opções
-    tipoServicoSelect.innerHTML = '<option value="">Selecione...</option>';
+    // Formata com separadores
+    valor = valor.replace('.', ',');
+    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
     
-    if (categoriaId) {
-        // Filtrar tipos de serviço que pertencem à categoria selecionada
-        const subtipos = tiposServicos.filter(tipo => tipo.parent_id === categoriaId);
-        
-        if (subtipos.length > 0) {
-            subtipos.forEach(tipo => {
-                const option = document.createElement('option');
-                option.value = tipo.id;
-                option.textContent = tipo.nome || tipo.descricao || 'Sem nome';
-                tipoServicoSelect.appendChild(option);
-            });
-            tipoServicoSelect.disabled = false;
-        } else {
-            tipoServicoSelect.innerHTML = '<option value="">Nenhum serviço cadastrado nesta categoria</option>';
-            tipoServicoSelect.disabled = true;
-        }
-    } else {
-        tipoServicoSelect.innerHTML = '<option value="">Selecione categoria primeiro...</option>';
-        tipoServicoSelect.disabled = true;
+    input.value = valor;
+}
+
+// Aplicar formatação no campo de valor
+const valorInput = document.getElementById('valor_total');
+valorInput.addEventListener('input', function() {
+    formatarMoeda(this);
+});
+
+// Preencher referência automaticamente quando selecionar data de emissão
+document.getElementById('data_emissao').addEventListener('change', function() {
+    const dataEmissao = this.value; // formato YYYY-MM-DD
+    if (dataEmissao) {
+        const [ano, mes, dia] = dataEmissao.split('-');
+        const referencia = `${mes}/${ano}`;
+        document.getElementById('referencia').value = referencia;
     }
 });
+
+// Definir data de emissão como hoje e preencher referência por padrão
+const dataEmissaoInput = document.querySelector('input[name="data_emissao"]');
+const hoje = new Date();
+const dataHoje = hoje.toISOString().split('T')[0];
+dataEmissaoInput.value = dataHoje;
+
+// Preencher referência com mês/ano atual
+const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+const anoAtual = hoje.getFullYear();
+document.getElementById('referencia').value = `${mesAtual}/${anoAtual}`;
 
 // Habilitar tipo de recorrência quando marcar checkbox
 document.getElementById('recorrente').addEventListener('change', function() {
     document.getElementById('tipo_recorrencia').disabled = !this.checked;
 });
 
-// Definir data de emissão como hoje por padrão
-document.querySelector('input[name="data_emissao"]').value = new Date().toISOString().split('T')[0];
-
-// Auto-ocultar mensagens flash após 2 segundos
-const flashMessage = document.getElementById('flash-message');
-if (flashMessage) {
-    setTimeout(() => {
-        flashMessage.style.transition = 'opacity 0.5s ease';
-        flashMessage.style.opacity = '0';
-        setTimeout(() => {
-            flashMessage.remove();
-        }, 500);
-    }, 2000);
+// Função para filtrar tipos de serviço baseado no fornecedor
+function filtrarTiposServico(fornecedorId) {
+    const tipoServicoSelect = document.getElementById('tipo_servico_id');
+    
+    // Limpar opções existentes
+    tipoServicoSelect.innerHTML = '<option value="">Selecione um tipo de serviço...</option>';
+    
+    if (fornecedorId) {
+        const fornecedor = fornecedores.find(f => f.id == fornecedorId);
+        
+        console.log('Fornecedor selecionado:', fornecedor);
+        console.log('Categoria do fornecedor:', fornecedor ? fornecedor.tipo_servico_id : 'sem categoria');
+        
+        if (fornecedor && fornecedor.tipo_servico_id) {
+            // Buscar o tipo de serviço principal do fornecedor
+            const tipoServicoPrincipal = tiposServicos.find(ts => ts.id == fornecedor.tipo_servico_id);
+            
+            if (tipoServicoPrincipal) {
+                // Adicionar o tipo de serviço principal
+                const optionPrincipal = document.createElement('option');
+                optionPrincipal.value = tipoServicoPrincipal.id;
+                optionPrincipal.textContent = tipoServicoPrincipal.nome;
+                optionPrincipal.selected = true;
+                tipoServicoSelect.appendChild(optionPrincipal);
+                
+                // Adicionar subcategorias (filhos) se existirem
+                const subcategorias = tiposServicos.filter(ts => ts.parent_id == tipoServicoPrincipal.id);
+                subcategorias.forEach(sub => {
+                    const option = document.createElement('option');
+                    option.value = sub.id;
+                    option.textContent = '→ ' + sub.nome;
+                    tipoServicoSelect.appendChild(option);
+                });
+                
+                console.log('✅ Filtrado:', tipoServicoPrincipal.nome, 'com', subcategorias.length, 'subcategorias');
+                
+                // Destacar visualmente
+                tipoServicoSelect.style.backgroundColor = '#e0f2fe';
+                setTimeout(() => {
+                    tipoServicoSelect.style.backgroundColor = '';
+                }, 1500);
+                
+                return; // Importante: retornar aqui para não executar o código abaixo
+            }
+        }
+        
+        // Se chegou aqui, fornecedor não tem categoria padrão
+        console.log('⚠️ Fornecedor sem categoria padrão - mostrando todas');
+    }
+    
+    // Restaurar todas as opções (quando não tem fornecedor ou não tem categoria)
+    tiposServicos.forEach(tipo => {
+        const option = document.createElement('option');
+        option.value = tipo.id;
+        option.textContent = tipo.parent_id ? '→ ' + tipo.nome : tipo.nome;
+        tipoServicoSelect.appendChild(option);
+    });
 }
+
+// Inicializar Select2 e eventos DEPOIS que o DOM carregar
+$(document).ready(function() {
+    // Inicializar Select2
+    $('#fornecedor_id').select2({
+        placeholder: 'Digite para buscar o fornecedor...',
+        allowClear: true,
+        language: {
+            noResults: function() {
+                return "Nenhum fornecedor encontrado";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        },
+        width: '100%'
+    });
+    
+    // Evento quando selecionar um fornecedor via Select2
+    $('#fornecedor_id').on('select2:select', function (e) {
+        const fornecedorId = e.params.data.id;
+        console.log('🔍 Select2 select event - ID:', fornecedorId);
+        filtrarTiposServico(fornecedorId);
+    });
+    
+    // Evento quando limpar o Select2
+    $('#fornecedor_id').on('select2:clear', function () {
+        console.log('🧹 Select2 cleared');
+        filtrarTiposServico(null);
+    });
+    
+    // Aplicar estilo do Tailwind ao Select2
+    $('.select2-container--default .select2-selection--single').css({
+        'height': '42px',
+        'border': '1px solid #d1d5db',
+        'border-radius': '0.5rem',
+        'padding': '0.5rem 0.75rem'
+    });
+    
+    $('.select2-container--default .select2-selection--single .select2-selection__rendered').css({
+        'line-height': '26px',
+        'padding-left': '0'
+    });
+    
+    $('.select2-container--default .select2-selection--single .select2-selection__arrow').css({
+        'height': '40px'
+    });
+});
 </script>
 {% endblock %}

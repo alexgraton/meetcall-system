@@ -241,6 +241,7 @@ class ContaReceberModel:
         Args:
             conta_id: ID da conta
             dados_recebimento:
+                - conta_bancaria_id (int): ID da conta bancária
                 - data_recebimento (date): Data do recebimento
                 - valor_pago (Decimal): Valor recebido
                 - valor_juros (Decimal, opcional): Juros cobrados
@@ -251,9 +252,14 @@ class ContaReceberModel:
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
+            # Validar conta bancária
+            if not dados_recebimento.get('conta_bancaria_id'):
+                raise ValueError('Conta bancária é obrigatória para registrar recebimento')
+            
             query = """
                 UPDATE contas_receber
-                SET data_recebimento = %s,
+                SET conta_bancaria_id = %s,
+                    data_recebimento = %s,
                     valor_pago = %s,
                     valor_juros = %s,
                     valor_multa = %s,
@@ -263,6 +269,7 @@ class ContaReceberModel:
             """
             
             cursor.execute(query, (
+                dados_recebimento['conta_bancaria_id'],
                 dados_recebimento['data_recebimento'],
                 dados_recebimento['valor_pago'],
                 dados_recebimento.get('valor_juros', 0),

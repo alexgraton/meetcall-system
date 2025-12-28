@@ -52,8 +52,26 @@
             </div>
 
             <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Conta Bancária <span class="text-red-500">*</span>
+                </label>
+                <select name="conta_bancaria_id" id="conta_bancaria_id" required 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Selecione a conta bancária...</option>
+                    {% for conta_banc in contas_bancarias %}
+                        <option value="{{ conta_banc.id }}" data-saldo="{{ conta_banc.saldo_atual }}">
+                            {{ conta_banc.banco }} - {{ conta_banc.tipo_conta|title }} 
+                            (Agência: {{ conta_banc.agencia }}, Conta: {{ conta_banc.numero_conta }})
+                            - Saldo: R$ {{ conta_banc.saldo_atual|moeda }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">💡 O saldo será debitado automaticamente</p>
+            </div>
+
+            <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Desconto (R$)</label>
-                <input type="number" name="valor_desconto" id="valor_desconto" step="0.01" min="0" value="0"
+                <input type="text" name="valor_desconto" id="valor_desconto" value="0,00"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
             </div>
 
@@ -108,7 +126,9 @@ const dataVencimento = new Date('{{ conta.data_vencimento }}');
 // Calcular juros e multa em tempo real
 function calcularEncargos() {
     const dataPagamento = document.getElementById('data_pagamento').value;
-    const valorDesconto = parseFloat(document.getElementById('valor_desconto').value) || 0;
+    // Converter valor com máscara para decimal
+    const valorDescontoStr = document.getElementById('valor_desconto').value.replace(/\./g, '').replace(',', '.');
+    const valorDesconto = parseFloat(valorDescontoStr) || 0;
     
     if (!dataPagamento) return;
     
@@ -117,12 +137,12 @@ function calcularEncargos() {
         .then(response => response.json())
         .then(data => {
             document.getElementById('dias_atraso').textContent = data.dias_atraso;
-            document.getElementById('valor_multa').textContent = data.valor_multa.toFixed(2);
-            document.getElementById('valor_juros').textContent = data.valor_juros.toFixed(2);
-            document.getElementById('desconto_calc').textContent = valorDesconto.toFixed(2);
+            document.getElementById('valor_multa').textContent = formatarMoeda(data.valor_multa);
+            document.getElementById('valor_juros').textContent = formatarMoeda(data.valor_juros);
+            document.getElementById('desconto_calc').textContent = formatarMoeda(valorDesconto);
             
             const valorTotal = data.valor_total - valorDesconto;
-            document.getElementById('valor_total_pagar').textContent = valorTotal.toFixed(2);
+            document.getElementById('valor_total_pagar').textContent = formatarMoeda(valorTotal);
             
             // Mostrar/ocultar linhas
             document.getElementById('linha_atraso').style.display = data.dias_atraso > 0 ? 'flex' : 'none';
@@ -135,9 +155,63 @@ function calcularEncargos() {
         });
 }
 
+// Função para formatar valor em moeda brasileira
+function formatarMoeda(valor) {
+    return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Máscara de moeda para o campo desconto
+const descontoInput = document.getElementById('valor_desconto');
+
+descontoInput.addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    if (value === '') {
+        e.target.value = '';
+        return;
+    }
+    value = (parseInt(value) / 100).toFixed(2);
+    value = value.replace('.', ',');
+    value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    e.target.value = value;
+    
+    // Recalcular encargos após aplicar máscara
+    calcularEncargos();
+});
+
 // Eventos
 document.getElementById('data_pagamento').addEventListener('change', calcularEncargos);
-document.getElementById('valor_desconto').addEventListener('input', calcularEncargos);
+
+// Validar saldo da conta bancária antes de enviar
+document.getElementById('formBaixa').addEventListener('submit', function(e) {
+    // Converter valor do desconto para formato decimal
+    const value = descontoInput.value.replace(/\./g, '').replace(',', '.');
+    descontoInput.value = value;
+    
+    const contaBancariaSelect = document.getElementById('conta_bancaria_id');
+    const selectedOption = contaBancariaSelect.options[contaBancariaSelect.selectedIndex];
+    
+    if (!selectedOption.value) {
+        alert('⚠️ Por favor, selecione uma conta bancária!');
+        e.preventDefault();
+        return;
+    }
+    
+    const saldo = parseFloat(selectedOption.dataset.saldo);
+    const totalPagar = parseFloat(document.getElementById('valor_total_pagar').textContent.replace(',', '.'));
+    
+    if (saldo < totalPagar) {
+        const confirma = confirm(
+            '⚠️ ATENÇÃO: Saldo insuficiente na conta bancária!\n\n' +
+            'Saldo disponível: R$ ' + saldo.toFixed(2).replace('.', ',') + '\n' +
+            'Valor a pagar: R$ ' + totalPagar.toFixed(2).replace('.', ',') + '\n\n' +
+            'Deseja continuar mesmo assim?\n(O saldo ficará negativo)'
+        );
+        
+        if (!confirma) {
+            e.preventDefault();
+        }
+    }
+});
 
 // Definir data de hoje por padrão e calcular
 document.getElementById('data_pagamento').value = new Date().toISOString().split('T')[0];

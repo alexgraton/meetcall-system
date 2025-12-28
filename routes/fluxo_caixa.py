@@ -19,6 +19,7 @@ def index():
     data_inicio_str = request.args.get('data_inicio')
     data_fim_str = request.args.get('data_fim')
     filial_id = request.args.get('filial_id')
+    conta_bancaria_id = request.args.get('conta_bancaria_id')
     
     # Definir período padrão (30 dias - 15 para trás, 15 para frente)
     hoje = datetime.now().date()
@@ -34,14 +35,17 @@ def index():
         data_fim = hoje + timedelta(days=15)
     
     filial_id = int(filial_id) if filial_id else None
+    conta_bancaria_id = int(conta_bancaria_id) if conta_bancaria_id else None
     
     # Buscar dados
-    movimentacoes = FluxoCaixaModel.get_movimentacoes(data_inicio, data_fim, filial_id)
-    saldo_inicial = FluxoCaixaModel.get_saldo_inicial(data_inicio, filial_id)
-    projecao_diaria = FluxoCaixaModel.get_projecao_diaria(data_inicio, data_fim, filial_id)
+    movimentacoes = FluxoCaixaModel.get_movimentacoes(data_inicio, data_fim, filial_id, conta_bancaria_id)
+    saldo_inicial = FluxoCaixaModel.get_saldo_inicial(data_inicio, filial_id, conta_bancaria_id)
+    projecao_diaria = FluxoCaixaModel.get_projecao_diaria(data_inicio, data_fim, filial_id, conta_bancaria_id)
     
-    # Buscar filiais para filtro
+    # Buscar filiais e contas bancárias para filtros
     filiais = FilialModel.get_all()
+    from models.conta_bancaria import ContaBancariaModel
+    contas_bancarias = ContaBancariaModel.get_all({'ativo': True})
     
     return render_template(
         'fluxo_caixa/index.html',
@@ -49,10 +53,12 @@ def index():
         saldo_inicial=saldo_inicial,
         projecao_diaria=projecao_diaria,
         filiais=filiais,
+        contas_bancarias=contas_bancarias,
         filtros={
             'data_inicio': data_inicio,
             'data_fim': data_fim,
-            'filial_id': filial_id
+            'filial_id': filial_id,
+            'conta_bancaria_id': conta_bancaria_id
         }
     )
 
@@ -63,6 +69,7 @@ def api_projecao():
     data_inicio_str = request.args.get('data_inicio')
     data_fim_str = request.args.get('data_fim')
     filial_id = request.args.get('filial_id')
+    conta_bancaria_id = request.args.get('conta_bancaria_id')
     
     hoje = datetime.now().date()
     
@@ -77,8 +84,9 @@ def api_projecao():
         data_fim = hoje + timedelta(days=15)
     
     filial_id = int(filial_id) if filial_id else None
+    conta_bancaria_id = int(conta_bancaria_id) if conta_bancaria_id else None
     
-    projecao = FluxoCaixaModel.get_projecao_diaria(data_inicio, data_fim, filial_id)
+    projecao = FluxoCaixaModel.get_projecao_diaria(data_inicio, data_fim, filial_id, conta_bancaria_id)
     
     # Converter para formato JSON-friendly
     dados = {

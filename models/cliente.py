@@ -24,8 +24,8 @@ class ClienteModel:
 
                 query = """
                     INSERT INTO clientes
-                    (codigo, nome, razao_social, cnpj, tipo_pessoa, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, is_active)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+                    (codigo, nome, razao_social, cnpj, tipo_pessoa, email, telefone, cep, endereco, numero, complemento, bairro, cidade, estado, tipo_servico_id, is_active)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
                 """
                 cursor.execute(query, (
                     dados.get('codigo'),
@@ -36,12 +36,13 @@ class ClienteModel:
                     dados.get('email'),
                     dados.get('telefone'),
                     dados.get('cep'),
-                    dados.get('logradouro'),  # maps to endereco column
+                    dados.get('endereco'),
                     dados.get('numero'),
                     dados.get('complemento'),
                     dados.get('bairro'),
                     dados.get('cidade'),
-                    dados.get('uf')  # maps to estado column
+                    dados.get('estado'),
+                    dados.get('tipo_servico_id') or None
                 ))
                 conn.commit()
                 cliente_id = cursor.lastrowid
@@ -58,8 +59,8 @@ class ClienteModel:
                 produtos = dados.get('produtos') or []
                 for p in produtos:
                     cursor.execute(
-                        "INSERT INTO cliente_produtos (cliente_id, nome, descricao, valor) VALUES (%s,%s,%s,%s)",
-                        (cliente_id, p.get('nome'), p.get('descricao'), p.get('valor'))
+                        "INSERT INTO cliente_produtos (cliente_id, nome, codigo, descricao, is_active) VALUES (%s,%s,%s,%s,%s)",
+                        (cliente_id, p.get('nome'), p.get('codigo'), p.get('descricao'), p.get('is_active', True))
                     )
                 
                 conn.commit()
@@ -110,13 +111,14 @@ class ClienteModel:
             query = """
                 UPDATE clientes
                 SET nome=%s, razao_social=%s, cnpj=%s, tipo_pessoa=%s, email=%s, telefone=%s,
-                    cep=%s, endereco=%s, numero=%s, complemento=%s, bairro=%s, cidade=%s, estado=%s, updated_at=NOW()
+                    cep=%s, endereco=%s, numero=%s, complemento=%s, bairro=%s, cidade=%s, estado=%s, tipo_servico_id=%s, updated_at=NOW()
                 WHERE id=%s
             """
             cursor.execute(query, (
                 dados.get('nome'), dados.get('razao_social'), dados.get('cnpj'), dados.get('tipo_pessoa', 'juridica'),
-                dados.get('email'), dados.get('telefone'), dados.get('cep'), dados.get('logradouro'), dados.get('numero'),
-                dados.get('complemento'), dados.get('bairro'), dados.get('cidade'), dados.get('uf'), cliente_id
+                dados.get('email'), dados.get('telefone'), dados.get('cep'), dados.get('endereco'), dados.get('numero'),
+                dados.get('complemento'), dados.get('bairro'), dados.get('cidade'), dados.get('estado'), 
+                dados.get('tipo_servico_id') or None, cliente_id
             ))
             
             # Atualizar contatos: apagar e reinserir
@@ -133,8 +135,8 @@ class ClienteModel:
             produtos = dados.get('produtos') or []
             for p in produtos:
                 cursor.execute(
-                    "INSERT INTO cliente_produtos (cliente_id, nome, descricao, valor) VALUES (%s,%s,%s,%s)",
-                    (cliente_id, p.get('nome'), p.get('descricao'), p.get('valor'))
+                    "INSERT INTO cliente_produtos (cliente_id, nome, codigo, descricao, is_active) VALUES (%s,%s,%s,%s,%s)",
+                    (cliente_id, p.get('nome'), p.get('codigo'), p.get('descricao'), p.get('is_active', True))
                 )
             
             conn.commit()

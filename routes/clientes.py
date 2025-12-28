@@ -55,20 +55,25 @@ def novo():
                     flash('CPF inválido!', 'error')
                     return redirect(url_for('clientes.novo'))
         
+        # Padronizar nomes para Title Case
+        nome = request.form.get('nome', '').strip()
+        razao_social = request.form.get('razao_social', '').strip()
+        
         dados = {
-            'nome': request.form.get('nome'),
-            'razao_social': request.form.get('razao_social'),
+            'nome': nome.title() if nome else None,
+            'razao_social': razao_social.title() if razao_social else None,
             'cnpj': cnpj,
             'tipo_pessoa': tipo_pessoa,
             'email': request.form.get('email'),
             'telefone': request.form.get('telefone'),
             'cep': request.form.get('cep'),
-            'logradouro': request.form.get('logradouro'),  # Form field name
+            'endereco': request.form.get('endereco'),
             'numero': request.form.get('numero'),
             'complemento': request.form.get('complemento'),
             'bairro': request.form.get('bairro'),
             'cidade': request.form.get('cidade'),
-            'uf': request.form.get('uf'),  # Form field name
+            'estado': request.form.get('estado'),
+            'tipo_servico_id': request.form.get('tipo_servico_id'),
             'contatos': [],
             'produtos': []
         }
@@ -88,7 +93,11 @@ def novo():
         ClienteModel.create(dados)
         flash('Cliente criado com sucesso!', 'success')
         return redirect(url_for('clientes.lista'))
-    return render_template('clientes/form.html')
+    
+    # Buscar tipos de serviços (categorias) para o select
+    from models.tipo_servico import TipoServicoModel
+    tipos_servicos = TipoServicoModel.get_all()
+    return render_template('clientes/form.html', tipos_servicos=tipos_servicos)
 
 @clientes_bp.route('/editar/<int:cliente_id>', methods=['GET', 'POST'])
 @admin_required
@@ -112,22 +121,27 @@ def editar(cliente_id):
             else:
                 if not validar_cpf(cnpj_limpo):
                     flash('CPF inválido!', 'error')
-                    return redirect(url_for('clientes.editar', cliente_id=cliente_id))
+                    return redirect(url_for('clientes.novo'))
+        
+        # Padronizar nomes para Title Case
+        nome = request.form.get('nome', '').strip()
+        razao_social = request.form.get('razao_social', '').strip()
         
         dados = {
-            'nome': request.form.get('nome'),
-            'razao_social': request.form.get('razao_social'),
+            'nome': nome.title() if nome else None,
+            'razao_social': razao_social.title() if razao_social else None,
             'cnpj': cnpj,
             'tipo_pessoa': tipo_pessoa,
             'email': request.form.get('email'),
             'telefone': request.form.get('telefone'),
             'cep': request.form.get('cep'),
-            'logradouro': request.form.get('logradouro'),  # Form field name
+            'endereco': request.form.get('endereco'),
             'numero': request.form.get('numero'),
             'complemento': request.form.get('complemento'),
             'bairro': request.form.get('bairro'),
             'cidade': request.form.get('cidade'),
-            'uf': request.form.get('uf'),  # Form field name
+            'estado': request.form.get('estado'),
+            'tipo_servico_id': request.form.get('tipo_servico_id'),
             'contatos': [],
             'produtos': []
         }
@@ -165,7 +179,11 @@ def editar(cliente_id):
     contatos_json = json.dumps(contatos, ensure_ascii=False)
     produtos_json = json.dumps(produtos, ensure_ascii=False)
     
-    return render_template('clientes/form.html', cliente=cliente, contatos_json=contatos_json, produtos_json=produtos_json)
+    # Buscar tipos de serviços (categorias) para o select
+    from models.tipo_servico import TipoServicoModel
+    tipos_servicos = TipoServicoModel.get_all()
+    
+    return render_template('clientes/form.html', cliente=cliente, contatos_json=contatos_json, produtos_json=produtos_json, tipos_servicos=tipos_servicos)
 
 @clientes_bp.route('/deletar/<int:cliente_id>', methods=['POST'])
 @admin_required
@@ -182,5 +200,90 @@ def toggle_status(cliente_id):
     try:
         ClienteModel.toggle_status(cliente_id)
         return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@clientes_bp.route('/<int:cliente_id>/contato/<int:contato_id>/deletar', methods=['POST'])
+@admin_required
+def deletar_contato(cliente_id, contato_id):
+    """Deleta um contato específico de um cliente"""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM cliente_contatos WHERE id = %s AND cliente_id = %s", (contato_id, cliente_id))
+            conn.commit()
+            return jsonify({'success': True, 'message': 'Contato removido'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@clientes_bp.route('/<int:cliente_id>/contato/adicionar', methods=['POST'])
+@admin_required
+def adicionar_contato(cliente_id):
+    """Adiciona um contato a um cliente existente"""
+    try:
+        from database import DatabaseManager
+        data = request.get_json()
+        
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO cliente_contatos (cliente_id, nome, telefone, email, cargo, observacoes)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (
+                cliente_id,
+                data.get('nome'),
+                data.get('telefone'),
+                data.get('email'),
+                data.get('cargo'),
+                data.get('observacoes')
+            ))
+            conn.commit()
+            contato_id = cursor.lastrowid
+            return jsonify({'success': True, 'message': 'Contato adicionado', 'id': contato_id})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@clientes_bp.route('/<int:cliente_id>/produto/<int:produto_id>/deletar', methods=['POST'])
+@admin_required
+def deletar_produto(cliente_id, produto_id):
+    """Deleta um produto específico de um cliente"""
+    try:
+        from database import DatabaseManager
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM cliente_produtos WHERE id = %s AND cliente_id = %s", (produto_id, cliente_id))
+            conn.commit()
+            return jsonify({'success': True, 'message': 'Produto removido'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@clientes_bp.route('/<int:cliente_id>/produto/adicionar', methods=['POST'])
+@admin_required
+def adicionar_produto(cliente_id):
+    """Adiciona um produto a um cliente existente"""
+    try:
+        from database import DatabaseManager
+        data = request.get_json()
+        
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO cliente_produtos (cliente_id, nome, codigo, descricao, is_active)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                cliente_id,
+                data.get('nome'),
+                data.get('codigo'),
+                data.get('descricao'),
+                data.get('is_active', True)
+            ))
+            conn.commit()
+            produto_id = cursor.lastrowid
+            return jsonify({'success': True, 'message': 'Produto adicionado', 'id': produto_id})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

@@ -29,36 +29,23 @@
                         <option value="">Selecione uma conta...</option>
                         {% for conta in contas %}
                         <option value="{{ conta.id }}">
-                            {{ conta.banco }} - Ag: {{ conta.agencia }} / Conta: {{ conta.conta }} - {{ conta.nome }}
+                            {{ conta.banco }} - Ag: {{ conta.agencia }} / Conta: {{ conta.numero_conta }} - {{ conta.descricao }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Arquivo do Extrato (CSV) *</label>
-                    <input type="file" name="arquivo" accept=".csv,.txt" required
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Arquivo do Extrato (Excel) *</label>
+                    <input type="file" name="arquivo" accept=".xlsx,.xls" required
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <p class="text-xs text-gray-500 mt-1">Formatos aceitos: CSV ou TXT delimitado</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Delimitador</label>
-                    <select name="delimiter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value=";">Ponto e vírgula (;)</option>
-                        <option value=",">Vírgula (,)</option>
-                        <option value="|">Pipe (|)</option>
-                        <option value="	">Tab</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Codificação</label>
-                    <select name="encoding" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="utf-8">UTF-8</option>
-                        <option value="latin1">Latin-1 (ISO-8859-1)</option>
-                        <option value="cp1252">Windows-1252</option>
-                    </select>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <i class="fas fa-info-circle text-blue-500"></i>
+                        Formatos aceitos: Excel (.xlsx) do Itaú ou Banco do Brasil
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        O sistema detecta automaticamente o formato do banco
+                    </p>
                 </div>
             </div>
 
@@ -169,11 +156,12 @@
                 <h3 class="text-sm font-medium text-blue-800">Como funciona</h3>
                 <div class="mt-2 text-sm text-blue-700">
                     <ol class="list-decimal list-inside space-y-1">
-                        <li>Exporte o extrato bancário em formato CSV do site do seu banco</li>
+                        <li>Exporte o extrato bancário em formato Excel (.xlsx) do site do seu banco</li>
+                        <li>Bancos suportados: <strong>Itaú</strong> e <strong>Banco do Brasil</strong></li>
                         <li>Selecione a conta bancária correspondente e faça o upload do arquivo</li>
-                        <li>O sistema identificará automaticamente transações compatíveis</li>
-                        <li>Revise e confirme as conciliações sugeridas</li>
-                        <li>Transações não encontradas podem ser ignoradas ou vinculadas manualmente</li>
+                        <li>O sistema identifica automaticamente o formato e processa as transações</li>
+                        <li>Revise e confirme as conciliações automáticas sugeridas</li>
+                        <li>Transações não encontradas podem ser vinculadas manualmente</li>
                     </ol>
                 </div>
             </div>

@@ -3,7 +3,6 @@ Rotas para conciliação bancária
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models.conciliacao import Conciliacao
-from utils.csv_parser import CSVParser
 from werkzeug.utils import secure_filename
 import os
 import functools
@@ -14,7 +13,7 @@ conciliacao_bp = Blueprint('conciliacao', __name__, url_prefix='/conciliacao')
 
 # Configuração de upload
 UPLOAD_FOLDER = 'uploads/extratos'
-ALLOWED_EXTENSIONS = {'csv', 'txt'}
+ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
 
 # Criar pasta de uploads se não existir
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -48,10 +47,10 @@ def index():
             
             # Buscar contas bancárias ativas
             cursor.execute("""
-                SELECT id, banco, agencia, conta, nome, saldo_atual
+                SELECT id, banco, agencia, numero_conta, descricao, saldo_atual
                 FROM contas_bancarias
-                WHERE is_active = 1
-                ORDER BY banco, agencia, conta
+                WHERE ativo = 1
+                ORDER BY banco, agencia, numero_conta
             """)
             contas = cursor.fetchall()
             cursor.close()
@@ -85,7 +84,7 @@ def upload():
             return redirect(url_for('conciliacao.index'))
         
         if not allowed_file(arquivo.filename):
-            flash('Formato de arquivo não permitido. Use CSV ou TXT', 'error')
+            flash('Formato de arquivo não permitido. Use Excel (.xlsx)', 'error')
             return redirect(url_for('conciliacao.index'))
         
         # Validar conta bancária
@@ -101,17 +100,39 @@ def upload():
         filepath = os.path.join(UPLOAD_FOLDER, filename_final)
         arquivo.save(filepath)
         
-        # Parsear arquivo
-        delimiter = request.form.get('delimiter', ';')
-        encoding = request.form.get('encoding', 'utf-8')
+        # Importar parsers do sistema
+        import sys
+        sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+        from services.parsers_extrato import detectar_banco, criar_parser
         
-        parser = CSVParser(filepath, encoding=encoding, delimiter=delimiter)
-        transacoes = parser.parse()
+        # Detectar banco e criar parser apropriado
+        banco_detectado = detectar_banco(filepath)
         
-        if not transacoes:
+        if not banco_detectado:
+            flash('Não foi possível identificar o formato do arquivo. Certifique-se de usar um extrato do Itaú ou Banco do Brasil.', 'error')
+            os.remove(filepath)
+            return redirect(url_for('conciliacao.index'))
+        
+        # Criar parser e processar arquivo
+        parser = criar_parser(filepath)
+        transacoes_parsed = parser.parse()
+        
+        if not transacoes_parsed or len(transacoes_parsed) == 0:
             flash('Nenhuma transação foi encontrada no arquivo', 'warning')
             os.remove(filepath)
             return redirect(url_for('conciliacao.index'))
+        
+        # Converter para formato esperado pela conciliação
+        transacoes = []
+        for trans in transacoes_parsed:
+            transacoes.append({
+                'data_transacao': trans['data_lancamento'],
+                'descricao': trans['historico'],
+                'documento': trans.get('documento', ''),
+                'valor': abs(float(trans['valor'])),
+                'tipo': trans['tipo_movimento'],  # já vem como 'credito' ou 'debito'
+                'saldo_apos': float(trans.get('saldo_apos', 0)) if trans.get('saldo_apos') else None
+            })
         
         # Criar conciliação
         conciliacao_id = Conciliacao.criar_conciliacao(
@@ -146,11 +167,45 @@ def matching(conciliacao_id):
         
         # Agrupar matches por transação do extrato
         matches_por_transacao = {}
+        transacoes_com_match_ids = set()
+        
         for match in matches:
             trans_id = match['transacao_extrato_id']
+            transacoes_com_match_ids.add(trans_id)
             if trans_id not in matches_por_transacao:
                 matches_por_transacao[trans_id] = []
             matches_por_transacao[trans_id].append(match)
+        
+        # Ordenar matches dentro de cada transação por similaridade
+        for trans_id in matches_por_transacao:
+            matches_por_transacao[trans_id].sort(key=lambda x: x['similaridade'], reverse=True)
+        
+        # Separar transações COM e SEM matches
+        transacoes_com_match = []
+        transacoes_sem_match = []
+        
+        for trans in conciliacao['transacoes']:
+            if trans['status_conciliacao'] == 'conciliada':
+                continue  # Pular transações já conciliadas
+            
+            if trans['id'] in transacoes_com_match_ids:
+                # Adicionar com a maior similaridade para ordenação
+                max_similaridade = matches_por_transacao[trans['id']][0]['similaridade']
+                transacoes_com_match.append({
+                    'transacao': trans,
+                    'max_similaridade': max_similaridade
+                })
+            else:
+                transacoes_sem_match.append(trans)
+        
+        # Ordenar transações com match por maior similaridade
+        transacoes_com_match.sort(key=lambda x: x['max_similaridade'], reverse=True)
+        
+        # Reconstruir lista de transações: com match primeiro, depois sem match
+        transacoes_ordenadas = [item['transacao'] for item in transacoes_com_match] + transacoes_sem_match
+        
+        # Atualizar a lista de transações na conciliação
+        conciliacao['transacoes'] = transacoes_ordenadas
         
         return render_template('conciliacao/matching.html',
                              conciliacao=conciliacao,

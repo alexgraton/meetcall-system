@@ -18,6 +18,10 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     
+    <!-- Select2 para autocomplete em selects -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
     <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -253,9 +257,9 @@
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            <div id="flash-message" class="fixed top-20 right-4 z-50 max-w-md">
                 {% for category, message in messages %}
-                    <div class="flash-message fade-in rounded-md p-4 mb-4 {% if category == 'error' %}bg-red-50 border-l-4 border-red-500{% elif category == 'success' %}bg-green-50 border-l-4 border-green-500{% elif category == 'warning' %}bg-yellow-50 border-l-4 border-yellow-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %}">
+                    <div class="flash-message fade-in rounded-md p-4 mb-4 shadow-lg {% if category == 'error' %}bg-red-50 border-l-4 border-red-500{% elif category == 'success' %}bg-green-50 border-l-4 border-green-500{% elif category == 'warning' %}bg-yellow-50 border-l-4 border-yellow-500{% else %}bg-blue-50 border-l-4 border-blue-500{% endif %}">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 <i class="fas {% if category == 'error' %}fa-exclamation-circle text-red-500{% elif category == 'success' %}fa-check-circle text-green-500{% elif category == 'warning' %}fa-exclamation-triangle text-yellow-500{% else %}fa-info-circle text-blue-500{% endif %} mr-3"></i>
@@ -268,6 +272,20 @@
                     </div>
                 {% endfor %}
             </div>
+            
+            <script>
+                // Auto-hide flash messages after 3 seconds
+                setTimeout(function() {
+                    var flashDiv = document.getElementById('flash-message');
+                    if (flashDiv) {
+                        flashDiv.style.opacity = '0';
+                        flashDiv.style.transition = 'opacity 0.5s';
+                        setTimeout(function() {
+                            flashDiv.remove();
+                        }, 500);
+                    }
+                }, 3000);
+            </script>
         {% endif %}
     {% endwith %}
     

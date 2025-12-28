@@ -227,14 +227,19 @@ class ContaPagarModel:
                 if conta['status'] == 'pago':
                     return {'success': False, 'message': 'Conta já está paga'}
                 
+                # Validar conta bancária
+                if not dados_baixa.get('conta_bancaria_id'):
+                    return {'success': False, 'message': 'Conta bancária é obrigatória'}
+                
                 # Calcular juros e multa se houver atraso
                 data_pagamento = datetime.strptime(dados_baixa['data_pagamento'], '%Y-%m-%d').date() if isinstance(dados_baixa['data_pagamento'], str) else dados_baixa['data_pagamento']
                 data_vencimento = conta['data_vencimento']
                 
-                valor_juros = Decimal('0')
-                valor_multa = Decimal('0')
+                valor_juros = Decimal(str(dados_baixa.get('valor_juros', 0)))
+                valor_multa = Decimal(str(dados_baixa.get('valor_multa', 0)))
                 
-                if data_pagamento > data_vencimento:
+                # Se não informado manualmente, calcular automaticamente
+                if valor_juros == 0 and valor_multa == 0 and data_pagamento > data_vencimento:
                     dias_atraso = (data_pagamento - data_vencimento).days
                     
                     # Multa (uma vez)
@@ -248,13 +253,17 @@ class ContaPagarModel:
                 # Aplicar desconto se houver
                 valor_desconto = Decimal(str(dados_baixa.get('valor_desconto', 0)))
                 
-                # Valor total pago
-                valor_total_pago = Decimal(str(conta['valor_total'])) + valor_juros + valor_multa - valor_desconto
+                # Valor total pago (pode ser informado manualmente ou calculado)
+                if dados_baixa.get('valor_pago'):
+                    valor_total_pago = Decimal(str(dados_baixa['valor_pago']))
+                else:
+                    valor_total_pago = Decimal(str(conta['valor_total'])) + valor_juros + valor_multa - valor_desconto
                 
                 # Atualizar conta
                 query = """
                     UPDATE contas_pagar
                     SET status = 'pago',
+                        conta_bancaria_id = %s,
                         data_pagamento = %s,
                         valor_pago = %s,
                         valor_juros = %s,
@@ -264,6 +273,7 @@ class ContaPagarModel:
                 """
                 
                 cursor.execute(query, (
+                    dados_baixa['conta_bancaria_id'],
                     data_pagamento,
                     valor_total_pago,
                     valor_juros,

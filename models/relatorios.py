@@ -59,90 +59,75 @@ class Relatorios:
         }
         
         # 1. RECEITAS - Contas a Receber recebidas no período
-        query_receitas = """
-            SELECT 
-                pc.tipo,
-                pc.categoria,
-                SUM(cr.valor_total - cr.valor_desconto + cr.valor_juros + cr.valor_multa) as valor
-            FROM contas_receber cr
-            INNER JOIN plano_contas pc ON cr.plano_contas_id = pc.id
-            WHERE cr.status = 'recebida'
-            AND cr.data_recebimento BETWEEN %s AND %s
-            GROUP BY pc.tipo, pc.categoria
-        """
-        receitas = db.execute_query(query_receitas, (data_inicio, data_fim))
-        
-        for receita in receitas:
-            valor = receita['valor'] if receita['valor'] else Decimal('0')
-            categoria = receita['categoria'].lower() if receita['categoria'] else ''
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
             
-            if 'venda' in categoria or 'servico' in categoria or 'serviço' in categoria:
-                dre['receitas_operacionais']['vendas_servicos'] += valor
-            else:
-                dre['receitas_operacionais']['outras_receitas'] += valor
-        
-        # 2. DESCONTOS - Total de descontos concedidos
-        query_descontos = """
-            SELECT SUM(valor_desconto) as total_descontos
-            FROM contas_receber
-            WHERE status = 'recebida'
-            AND data_recebimento BETWEEN %s AND %s
-            AND valor_desconto > 0
-        """
-        result_descontos = db.execute_query(query_descontos, (data_inicio, data_fim))
-        if result_descontos and result_descontos[0]['total_descontos']:
-            dre['deducoes_receita']['descontos'] = result_descontos[0]['total_descontos']
-        
-        # 3. LANÇAMENTOS MANUAIS - Receitas
-        query_lancamentos_receita = """
-            SELECT SUM(valor) as total
-            FROM lancamentos_manuais
-            WHERE tipo = 'receita'
-            AND data_lancamento BETWEEN %s AND %s
-        """
-        result_lanc_rec = db.execute_query(query_lancamentos_receita, (data_inicio, data_fim))
-        if result_lanc_rec and result_lanc_rec[0]['total']:
-            dre['receitas_operacionais']['outras_receitas'] += result_lanc_rec[0]['total']
-        
-        # 4. DESPESAS - Contas a Pagar pagas no período
-        query_despesas = """
-            SELECT 
-                pc.tipo,
-                pc.categoria,
-                SUM(cp.valor_total - cp.valor_desconto + cp.valor_juros + cp.valor_multa) as valor
-            FROM contas_pagar cp
-            INNER JOIN plano_contas pc ON cp.plano_contas_id = pc.id
-            WHERE cp.status = 'paga'
-            AND cp.data_pagamento BETWEEN %s AND %s
-            GROUP BY pc.tipo, pc.categoria
-        """
-        despesas = db.execute_query(query_despesas, (data_inicio, data_fim))
-        
-        for despesa in despesas:
-            valor = despesa['valor'] if despesa['valor'] else Decimal('0')
-            categoria = despesa['categoria'].lower() if despesa['categoria'] else ''
+            query_receitas = """
+                SELECT 
+                    SUM(cr.valor_total - COALESCE(cr.valor_desconto, 0) + COALESCE(cr.valor_juros, 0) + COALESCE(cr.valor_multa, 0)) as valor
+                FROM contas_receber cr
+                WHERE cr.status = 'recebido'
+                AND cr.data_recebimento BETWEEN %s AND %s
+            """
+            cursor.execute(query_receitas, (data_inicio, data_fim))
+            result_receitas = cursor.fetchone()
             
-            if 'custo' in categoria or 'cogs' in categoria or 'cmv' in categoria:
-                dre['custos_operacionais']['custos_servicos'] += valor
-            elif 'financeira' in categoria or 'juros' in categoria or 'banco' in categoria:
-                dre['despesas_operacionais']['financeiras'] += valor
-            elif 'administrativa' in categoria or 'admin' in categoria:
-                dre['despesas_operacionais']['administrativas'] += valor
-            elif 'comercial' in categoria or 'vendas' in categoria or 'marketing' in categoria:
-                dre['despesas_operacionais']['comerciais'] += valor
-            else:
-                dre['despesas_operacionais']['outras'] += valor
-        
-        # 5. LANÇAMENTOS MANUAIS - Despesas
-        query_lancamentos_despesa = """
-            SELECT SUM(valor) as total
-            FROM lancamentos_manuais
-            WHERE tipo = 'despesa'
-            AND data_lancamento BETWEEN %s AND %s
-        """
-        result_lanc_desp = db.execute_query(query_lancamentos_despesa, (data_inicio, data_fim))
-        if result_lanc_desp and result_lanc_desp[0]['total']:
-            dre['despesas_operacionais']['outras'] += result_lanc_desp[0]['total']
+            if result_receitas and result_receitas['valor']:
+                dre['receitas_operacionais']['vendas_servicos'] = result_receitas['valor']
+            
+            # 2. DESCONTOS - Total de descontos concedidos
+            query_descontos = """
+                SELECT SUM(COALESCE(valor_desconto, 0)) as total_descontos
+                FROM contas_receber
+                WHERE status = 'recebido'
+                AND data_recebimento BETWEEN %s AND %s
+                AND valor_desconto > 0
+            """
+            cursor.execute(query_descontos, (data_inicio, data_fim))
+            result_descontos = cursor.fetchone()
+            if result_descontos and result_descontos['total_descontos']:
+                dre['deducoes_receita']['descontos'] = result_descontos['total_descontos']
+            
+            # 3. LANÇAMENTOS MANUAIS - Receitas
+            query_lancamentos_receita = """
+                SELECT SUM(valor) as total
+                FROM lancamentos_manuais
+                WHERE tipo = 'receita'
+                AND data_lancamento BETWEEN %s AND %s
+            """
+            cursor.execute(query_lancamentos_receita, (data_inicio, data_fim))
+            result_lanc_rec = cursor.fetchone()
+            if result_lanc_rec and result_lanc_rec['total']:
+                dre['receitas_operacionais']['outras_receitas'] += result_lanc_rec['total']
+            
+            # 4. DESPESAS - Contas a Pagar pagas no período
+            query_despesas = """
+                SELECT 
+                    SUM(cp.valor_total - COALESCE(cp.valor_desconto, 0) + COALESCE(cp.valor_juros, 0) + COALESCE(cp.valor_multa, 0)) as valor
+                FROM contas_pagar cp
+                WHERE cp.status = 'pago'
+                AND cp.data_pagamento BETWEEN %s AND %s
+            """
+            cursor.execute(query_despesas, (data_inicio, data_fim))
+            result_despesas = cursor.fetchone()
+            
+            if result_despesas and result_despesas['valor']:
+                # Classificar todas as despesas como operacionais
+                dre['despesas_operacionais']['outras'] = result_despesas['valor']
+            
+            # 5. LANÇAMENTOS MANUAIS - Despesas
+            query_lancamentos_despesa = """
+                SELECT SUM(valor) as total
+                FROM lancamentos_manuais
+                WHERE tipo = 'despesa'
+                AND data_lancamento BETWEEN %s AND %s
+            """
+            cursor.execute(query_lancamentos_despesa, (data_inicio, data_fim))
+            result_lanc_desp = cursor.fetchone()
+            if result_lanc_desp and result_lanc_desp['total']:
+                dre['despesas_operacionais']['outras'] += result_lanc_desp['total']
+            
+            cursor.close()
         
         # CÁLCULOS
         dre['receitas_operacionais']['total'] = (
@@ -214,36 +199,44 @@ class Relatorios:
         }
         
         # 1. ATIVO CIRCULANTE - Caixa e Bancos
-        query_bancos = """
-            SELECT SUM(saldo_atual) as total
-            FROM contas_bancarias
-            WHERE is_active = 1
-        """
-        result_bancos = db.execute_query(query_bancos)
-        if result_bancos and result_bancos[0]['total']:
-            balanco['ativo']['circulante']['caixa_bancos'] = result_bancos[0]['total']
-        
-        # 2. ATIVO CIRCULANTE - Contas a Receber (pendentes e vencidas até data_referencia)
-        query_receber = """
-            SELECT SUM(valor_total - valor_desconto + valor_juros + valor_multa) as total
-            FROM contas_receber
-            WHERE status IN ('pendente', 'vencida')
-            AND data_vencimento <= %s
-        """
-        result_receber = db.execute_query(query_receber, (data_referencia,))
-        if result_receber and result_receber[0]['total']:
-            balanco['ativo']['circulante']['contas_receber'] = result_receber[0]['total']
-        
-        # 3. PASSIVO CIRCULANTE - Contas a Pagar (pendentes e vencidas até data_referencia)
-        query_pagar = """
-            SELECT SUM(valor_total - valor_desconto + valor_juros + valor_multa) as total
-            FROM contas_pagar
-            WHERE status IN ('pendente', 'vencida')
-            AND data_vencimento <= %s
-        """
-        result_pagar = db.execute_query(query_pagar, (data_referencia,))
-        if result_pagar and result_pagar[0]['total']:
-            balanco['passivo']['circulante']['contas_pagar'] = result_pagar[0]['total']
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            query_bancos = """
+                SELECT SUM(saldo_atual) as total
+                FROM contas_bancarias
+                WHERE ativo = 1
+            """
+            cursor.execute(query_bancos)
+            result_bancos = cursor.fetchone()
+            if result_bancos and result_bancos['total']:
+                balanco['ativo']['circulante']['caixa_bancos'] = result_bancos['total']
+            
+            # 2. ATIVO CIRCULANTE - Contas a Receber (pendentes e vencidas até data_referencia)
+            query_receber = """
+                SELECT SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)) as total
+                FROM contas_receber
+                WHERE status IN ('pendente', 'vencido')
+                AND data_vencimento <= %s
+            """
+            cursor.execute(query_receber, (data_referencia,))
+            result_receber = cursor.fetchone()
+            if result_receber and result_receber['total']:
+                balanco['ativo']['circulante']['contas_receber'] = result_receber['total']
+            
+            # 3. PASSIVO CIRCULANTE - Contas a Pagar (pendentes e vencidas até data_referencia)
+            query_pagar = """
+                SELECT SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)) as total
+                FROM contas_pagar
+                WHERE status IN ('pendente', 'vencido')
+                AND data_vencimento <= %s
+            """
+            cursor.execute(query_pagar, (data_referencia,))
+            result_pagar = cursor.fetchone()
+            if result_pagar and result_pagar['total']:
+                balanco['passivo']['circulante']['contas_pagar'] = result_pagar['total']
+            
+            cursor.close()
         
         # CÁLCULOS
         balanco['ativo']['circulante']['total'] = (
@@ -300,80 +293,92 @@ class Relatorios:
         
         # 1. Saldo inicial (bancos no início do período)
         # Para simplificar, vamos calcular retroativamente
-        query_movimentos_anteriores = """
-            SELECT 
-                COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) -
-                COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as saldo_anterior
-            FROM lancamentos_manuais
-            WHERE data_lancamento < %s
-        """
-        result_anterior = db.execute_query(query_movimentos_anteriores, (data_inicio,))
-        
-        query_recebimentos_anteriores = """
-            SELECT COALESCE(SUM(valor_total - valor_desconto + valor_juros + valor_multa), 0) as total
-            FROM contas_receber
-            WHERE status = 'recebida'
-            AND data_recebimento < %s
-        """
-        result_rec_anterior = db.execute_query(query_recebimentos_anteriores, (data_inicio,))
-        
-        query_pagamentos_anteriores = """
-            SELECT COALESCE(SUM(valor_total - valor_desconto + valor_juros + valor_multa), 0) as total
-            FROM contas_pagar
-            WHERE status = 'paga'
-            AND data_pagamento < %s
-        """
-        result_pag_anterior = db.execute_query(query_pagamentos_anteriores, (data_inicio,))
-        
-        saldo_movimentos = result_anterior[0]['saldo_anterior'] if result_anterior else Decimal('0')
-        saldo_recebimentos = result_rec_anterior[0]['total'] if result_rec_anterior else Decimal('0')
-        saldo_pagamentos = result_pag_anterior[0]['total'] if result_pag_anterior else Decimal('0')
-        
-        dfc['saldo_inicial'] = saldo_movimentos + saldo_recebimentos - saldo_pagamentos
-        
-        # 2. FLUXO OPERACIONAL - Recebimentos
-        query_recebimentos = """
-            SELECT COALESCE(SUM(valor_total - valor_desconto + valor_juros + valor_multa), 0) as total
-            FROM contas_receber
-            WHERE status = 'recebida'
-            AND data_recebimento BETWEEN %s AND %s
-        """
-        result_recebimentos = db.execute_query(query_recebimentos, (data_inicio, data_fim))
-        if result_recebimentos:
-            dfc['operacional']['recebimentos'] = result_recebimentos[0]['total']
-        
-        # 3. Lançamentos manuais - Receitas
-        query_lanc_receitas = """
-            SELECT COALESCE(SUM(valor), 0) as total
-            FROM lancamentos_manuais
-            WHERE tipo = 'receita'
-            AND data_lancamento BETWEEN %s AND %s
-        """
-        result_lanc_rec = db.execute_query(query_lanc_receitas, (data_inicio, data_fim))
-        if result_lanc_rec:
-            dfc['operacional']['recebimentos'] += result_lanc_rec[0]['total']
-        
-        # 4. FLUXO OPERACIONAL - Pagamentos
-        query_pagamentos = """
-            SELECT COALESCE(SUM(valor_total - valor_desconto + valor_juros + valor_multa), 0) as total
-            FROM contas_pagar
-            WHERE status = 'paga'
-            AND data_pagamento BETWEEN %s AND %s
-        """
-        result_pagamentos = db.execute_query(query_pagamentos, (data_inicio, data_fim))
-        if result_pagamentos:
-            dfc['operacional']['pagamentos'] = result_pagamentos[0]['total']
-        
-        # 5. Lançamentos manuais - Despesas
-        query_lanc_despesas = """
-            SELECT COALESCE(SUM(valor), 0) as total
-            FROM lancamentos_manuais
-            WHERE tipo = 'despesa'
-            AND data_lancamento BETWEEN %s AND %s
-        """
-        result_lanc_desp = db.execute_query(query_lanc_despesas, (data_inicio, data_fim))
-        if result_lanc_desp:
-            dfc['operacional']['pagamentos'] += result_lanc_desp[0]['total']
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            query_movimentos_anteriores = """
+                SELECT 
+                    COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END), 0) -
+                    COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END), 0) as saldo_anterior
+                FROM lancamentos_manuais
+                WHERE data_lancamento < %s
+            """
+            cursor.execute(query_movimentos_anteriores, (data_inicio,))
+            result_anterior = cursor.fetchone()
+            
+            query_recebimentos_anteriores = """
+                SELECT COALESCE(SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)), 0) as total
+                FROM contas_receber
+                WHERE status = 'recebido'
+                AND data_recebimento < %s
+            """
+            cursor.execute(query_recebimentos_anteriores, (data_inicio,))
+            result_rec_anterior = cursor.fetchone()
+            
+            query_pagamentos_anteriores = """
+                SELECT COALESCE(SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)), 0) as total
+                FROM contas_pagar
+                WHERE status = 'pago'
+                AND data_pagamento < %s
+            """
+            cursor.execute(query_pagamentos_anteriores, (data_inicio,))
+            result_pag_anterior = cursor.fetchone()
+            
+            saldo_movimentos = result_anterior['saldo_anterior'] if result_anterior else Decimal('0')
+            saldo_recebimentos = result_rec_anterior['total'] if result_rec_anterior else Decimal('0')
+            saldo_pagamentos = result_pag_anterior['total'] if result_pag_anterior else Decimal('0')
+            
+            dfc['saldo_inicial'] = saldo_movimentos + saldo_recebimentos - saldo_pagamentos
+            
+            # 2. FLUXO OPERACIONAL - Recebimentos
+            query_recebimentos = """
+                SELECT COALESCE(SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)), 0) as total
+                FROM contas_receber
+                WHERE status = 'recebido'
+                AND data_recebimento BETWEEN %s AND %s
+            """
+            cursor.execute(query_recebimentos, (data_inicio, data_fim))
+            result_recebimentos = cursor.fetchone()
+            if result_recebimentos:
+                dfc['operacional']['recebimentos'] = result_recebimentos['total']
+            
+            # 3. Lançamentos manuais - Receitas
+            query_lanc_receitas = """
+                SELECT COALESCE(SUM(valor), 0) as total
+                FROM lancamentos_manuais
+                WHERE tipo = 'receita'
+                AND data_lancamento BETWEEN %s AND %s
+            """
+            cursor.execute(query_lanc_receitas, (data_inicio, data_fim))
+            result_lanc_rec = cursor.fetchone()
+            if result_lanc_rec:
+                dfc['operacional']['recebimentos'] += result_lanc_rec['total']
+            
+            # 4. FLUXO OPERACIONAL - Pagamentos
+            query_pagamentos = """
+                SELECT COALESCE(SUM(valor_total - COALESCE(valor_desconto, 0) + COALESCE(valor_juros, 0) + COALESCE(valor_multa, 0)), 0) as total
+                FROM contas_pagar
+                WHERE status = 'pago'
+                AND data_pagamento BETWEEN %s AND %s
+            """
+            cursor.execute(query_pagamentos, (data_inicio, data_fim))
+            result_pagamentos = cursor.fetchone()
+            if result_pagamentos:
+                dfc['operacional']['pagamentos'] = result_pagamentos['total']
+            
+            # 5. Lançamentos manuais - Despesas
+            query_lanc_despesas = """
+                SELECT COALESCE(SUM(valor), 0) as total
+                FROM lancamentos_manuais
+                WHERE tipo = 'despesa'
+                AND data_lancamento BETWEEN %s AND %s
+            """
+            cursor.execute(query_lanc_despesas, (data_inicio, data_fim))
+            result_lanc_desp = cursor.fetchone()
+            if result_lanc_desp:
+                dfc['operacional']['pagamentos'] += result_lanc_desp['total']
+            
+            cursor.close()
         
         # CÁLCULOS
         dfc['operacional']['total'] = dfc['operacional']['recebimentos'] - dfc['operacional']['pagamentos']
