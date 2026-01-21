@@ -4,6 +4,7 @@ Rotas para gerenciamento do Plano de Contas
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from functools import wraps
 from models.plano_conta import PlanoContaModel
+from utils.auditoria import auditar_agora
 
 plano_contas_bp = Blueprint('plano_contas', __name__, url_prefix='/plano-contas')
 
@@ -61,6 +62,9 @@ def novo():
         
         result = PlanoContaModel.create(dados)
         if result['success']:
+            # Auditoria
+            auditar_agora('plano_contas', result.get('id', 0), 'insert', dados)
+            
             flash(f'Conta {result["codigo"]} cadastrada com sucesso!', 'success')
             return redirect(url_for('plano_contas.lista'))
         else:
@@ -85,6 +89,10 @@ def editar(conta_id):
         }
         
         PlanoContaModel.update(conta_id, dados)
+        
+        # Auditoria
+        auditar_agora('plano_contas', conta_id, 'update', dados)
+        
         flash('Conta atualizada com sucesso!', 'success')
         return redirect(url_for('plano_contas.lista'))
     
@@ -96,6 +104,11 @@ def editar(conta_id):
 def deletar(conta_id):
     try:
         result = PlanoContaModel.delete(conta_id)
+        
+        if result.get('success'):
+            # Auditoria
+            auditar_agora('plano_contas', conta_id, 'delete')
+        
         return jsonify(result)
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

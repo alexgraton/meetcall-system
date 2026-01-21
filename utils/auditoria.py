@@ -194,6 +194,29 @@ def registrar_acao_customizada(tabela, registro_id, acao, dados=None):
         ip_address=ip
     )
 
+def auditar_agora(tabela, registro_id, acao, dados=None):
+    """
+    Helper simples para registrar auditoria imediatamente
+    Usa informações da sessão e request automaticamente
+    
+    Args:
+        tabela: Nome da tabela
+        registro_id: ID do registro
+        acao: 'insert', 'update', 'delete', etc
+        dados: Dict com os dados (opcional)
+    """
+    usuario_id = session.get('user_id')
+    ip = obter_ip_usuario()
+    
+    return AuditoriaModel.registrar_acao(
+        tabela=tabela,
+        registro_id=registro_id,
+        acao=acao,
+        usuario_id=usuario_id,
+        dados_novos=dados,
+        ip_address=ip
+    )
+
 def obter_dados_form_seguros():
     """
     Obtém dados do formulário removendo campos sensíveis

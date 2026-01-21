@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.cliente import ClienteModel
 from services.cnpj_validator import validar_cnpj, validar_cpf, limpar_documento
+from utils.auditoria import auditar_agora
 import json
 
 clientes_bp = Blueprint('clientes', __name__, url_prefix='/clientes')
@@ -79,6 +80,10 @@ def novo():
             pass
         
         ClienteModel.create(dados)
+        
+        # Auditoria
+        auditar_agora('clientes', 0, 'insert', dados)
+        
         flash('Cliente criado com sucesso!', 'success')
         return redirect(url_for('clientes.lista'))
     
@@ -146,6 +151,10 @@ def editar(cliente_id):
             pass
         
         ClienteModel.update(cliente_id, dados)
+        
+        # Auditoria
+        auditar_agora('clientes', cliente_id, 'update', dados)
+        
         flash('Cliente atualizado com sucesso!', 'success')
         return redirect(url_for('clientes.lista'))
     
@@ -178,6 +187,10 @@ def editar(cliente_id):
 def deletar(cliente_id):
     try:
         ClienteModel.delete(cliente_id)
+        
+        # Auditoria
+        auditar_agora('clientes', cliente_id, 'delete')
+        
         return jsonify({'success': True, 'message': 'Cliente desativado'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from functools import wraps
 from models.filial import FilialModel
 from services.cnpj_validator import validar_cnpj, formatar_cnpj, limpar_documento
+from utils.auditoria import auditar_agora
 
 filiais_bp = Blueprint('filiais', __name__, url_prefix='/filiais')
 
@@ -69,6 +70,10 @@ def nova():
             
             # Cria a filial
             filial_id = FilialModel.create(data, session['user_id'])
+            
+            # Auditoria
+            auditar_agora('filiais', filial_id, 'insert', data)
+            
             flash(f'Filial {data["nome"]} criada com sucesso!', 'success')
             return redirect(url_for('filiais.lista'))
             
@@ -120,6 +125,9 @@ def editar(filial_id):
             
             # Atualiza a filial
             if FilialModel.update(filial_id, data):
+                # Auditoria
+                auditar_agora('filiais', filial_id, 'update', data)
+                
                 flash('Filial atualizada com sucesso!', 'success')
                 return redirect(url_for('filiais.lista'))
             else:
@@ -161,6 +169,9 @@ def deletar(filial_id):
     """Deleta (desativa) uma filial"""
     try:
         if FilialModel.delete(filial_id):
+            # Auditoria
+            auditar_agora('filiais', filial_id, 'delete')
+            
             flash('Filial removida com sucesso!', 'success')
         else:
             flash('Erro ao remover filial.', 'error')

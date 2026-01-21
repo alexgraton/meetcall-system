@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.fornecedor import FornecedorModel
 from services.cnpj_validator import validar_cnpj, validar_cpf, limpar_documento
+from utils.auditoria import auditar_agora
 
 fornecedores_bp = Blueprint('fornecedores', __name__, url_prefix='/fornecedores')
 
@@ -74,7 +75,11 @@ def novo():
         except:
             pass
         
-        FornecedorModel.create(dados)
+        fornecedor_id = FornecedorModel.create(dados)
+        
+        # Auditoria
+        auditar_agora('fornecedores', fornecedor_id, 'insert', dados)
+        
         flash('Fornecedor criado com sucesso!', 'success')
         return redirect(url_for('fornecedores.lista'))
     
@@ -137,6 +142,10 @@ def editar(fornecedor_id):
             pass
         
         FornecedorModel.update(fornecedor_id, dados)
+        
+        # Auditoria
+        auditar_agora('fornecedores', fornecedor_id, 'update', dados)
+        
         flash('Fornecedor atualizado com sucesso!', 'success')
         return redirect(url_for('fornecedores.lista'))
     
@@ -150,6 +159,10 @@ def editar(fornecedor_id):
 def deletar(fornecedor_id):
     try:
         FornecedorModel.delete(fornecedor_id)
+        
+        # Auditoria
+        auditar_agora('fornecedores', fornecedor_id, 'delete')
+        
         return jsonify({'success': True, 'message': 'Fornecedor desativado'} )
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

@@ -4,6 +4,7 @@ Rotas para gerenciamento de Tipos de Serviços
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, session
 from functools import wraps
 from models.tipo_servico import TipoServicoModel
+from utils.auditoria import auditar_agora
 
 # Criar blueprint
 tipos_servicos_bp = Blueprint('tipos_servicos', __name__, url_prefix='/tipos-servicos')
@@ -71,6 +72,14 @@ def novo():
                 tipo=tipo,
                 parent_id=parent_id
             )
+            
+            # Auditoria
+            auditar_agora('tipos_servicos', tipo_id, 'insert', {
+                'nome': nome,
+                'descricao': descricao,
+                'tipo': tipo,
+                'parent_id': parent_id
+            })
             
             flash('Categoria de despesa criada com sucesso!', 'success')
             return redirect(url_for('tipos_servicos.lista'))

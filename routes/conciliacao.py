@@ -4,6 +4,7 @@ Rotas para conciliação bancária
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models.conciliacao import Conciliacao
 from werkzeug.utils import secure_filename
+from utils.auditoria import auditar_agora
 import os
 import functools
 from datetime import datetime

@@ -11,6 +11,7 @@ from models.tipo_servico import TipoServicoModel
 from models.centro_custo import CentroCustoModel
 from models.plano_conta import PlanoContaModel
 from models.filial import FilialModel
+from utils.auditoria import auditar_agora
 import mysql.connector
 
 contas_receber_bp = Blueprint('contas_receber', __name__, url_prefix='/contas-receber')
@@ -114,6 +115,9 @@ def nova():
             
             conta_id = ContaReceberModel.create(dados)
             
+            # Auditoria
+            auditar_agora('contas_receber', conta_id, 'insert', dados)
+            
             if dados['numero_parcelas'] > 1:
                 flash(f'Conta a receber criada com sucesso! {dados["numero_parcelas"]} parcelas geradas.', 'success')
             else:
@@ -203,6 +207,17 @@ def receber(conta_id):
             # Registrar recebimento
             ContaReceberModel.receber(conta_id, dados_recebimento)
             
+            # Auditoria
+            auditar_agora('contas_receber', conta_id, 'update', {
+                'acao': 'recebimento',
+                'conta_bancaria_id': dados_recebimento['conta_bancaria_id'],
+                'data_recebimento': dados_recebimento['data_recebimento'].strftime('%Y-%m-%d'),
+                'valor_pago': str(valor_pago),
+                'valor_juros': str(valor_juros),
+                'valor_multa': str(valor_multa),
+                'valor_desconto': str(valor_desconto)
+            })
+            
             # Movimentar conta bancária (creditar)
             from models.conta_bancaria import ContaBancariaModel
             try:
@@ -234,6 +249,13 @@ def receber(conta_id):
 def cancelar(conta_id):
     try:
         ContaReceberModel.cancelar(conta_id)
+        
+        # Auditoria
+        auditar_agora('contas_receber', conta_id, 'update', {
+            'acao': 'cancelamento',
+            'motivo': 'cancelamento_usuario'
+        })
+        
         flash('Conta cancelada com sucesso!', 'success')
     except Exception as e:
         flash(f'Erro ao cancelar conta: {str(e)}', 'error')

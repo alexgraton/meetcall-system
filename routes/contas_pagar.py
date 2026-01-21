@@ -11,6 +11,7 @@ from models.tipo_servico import TipoServicoModel
 from models.centro_custo import CentroCustoModel
 from models.plano_conta import PlanoContaModel
 from models.filial import FilialModel
+from utils.auditoria import auditar_agora
 
 contas_pagar_bp = Blueprint('contas_pagar', __name__, url_prefix='/contas-pagar')
 
@@ -115,6 +116,10 @@ def nova():
         resultado = ContaPagarModel.create(dados)
         
         if resultado['success']:
+            # Auditoria
+            conta_id = resultado.get('id', 0)
+            auditar_agora('contas_pagar', conta_id, 'insert', dados)
+            
             flash(resultado['message'], 'success')
             return redirect(url_for('contas_pagar.lista'))
         else:
@@ -159,6 +164,15 @@ def baixar(conta_id):
             resultado = ContaPagarModel.baixar(conta_id, dados_baixa)
             
             if resultado['success']:
+                # Auditoria
+                auditar_agora('contas_pagar', conta_id, 'update', {
+                    'acao': 'baixa_pagamento',
+                    'conta_bancaria_id': dados_baixa['conta_bancaria_id'],
+                    'data_pagamento': dados_baixa['data_pagamento'],
+                    'valor_pago': str(resultado['valor_pago']),
+                    'valor_desconto': dados_baixa['valor_desconto']
+                })
+                
                 # Movimentar conta bancária (debitar)
                 from models.conta_bancaria import ContaBancariaModel
                 try:
@@ -198,6 +212,14 @@ def baixar(conta_id):
 @login_required
 def cancelar(conta_id):
     resultado = ContaPagarModel.cancelar(conta_id)
+    
+    if resultado.get('success'):
+        # Auditoria
+        auditar_agora('contas_pagar', conta_id, 'update', {
+            'acao': 'cancelamento',
+            'motivo': 'cancelamento_usuario'
+        })
+    
     return jsonify(resultado)
 
 @contas_pagar_bp.route('/detalhes/<int:conta_id>')

@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from models.conta_bancaria import ContaBancariaModel
 from models.filial import FilialModel
 from decimal import Decimal
+from utils.auditoria import auditar_agora
 
 contas_bancarias_bp = Blueprint('contas_bancarias', __name__, url_prefix='/contas_bancarias')
 

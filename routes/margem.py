@@ -7,6 +7,7 @@ from models.margem_operacional import MargemOperacionalModel
 from models.capacity import CapacityModel
 from decimal import Decimal
 import json
+from utils.auditoria import auditar_agora
 
 margem_bp = Blueprint('margem', __name__, url_prefix='/margem')
 margem_model = MargemOperacionalModel()

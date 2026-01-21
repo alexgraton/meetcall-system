@@ -3,6 +3,7 @@ Routes para gerenciamento de Capacity (operadores por cliente/produto)
 """
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for
 from models.capacity import CapacityModel
+from models.auditoria import AuditoriaModel
 from datetime import datetime
 
 capacity_bp = Blueprint('capacity', __name__, url_prefix='/capacity')
@@ -51,6 +52,27 @@ def api_salvar():
             data_vigencia=data_vigencia,
             usuario_id=session['user_id'],
             observacoes=observacoes
+        )
+        
+        # Registrar na auditoria
+        ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', 'unknown'))
+        if ip_address and ',' in ip_address:
+            ip_address = ip_address.split(',')[0]
+        
+        AuditoriaModel.registrar_acao(
+            tabela='capacity',
+            registro_id=capacity_id,
+            acao='insert',
+            usuario_id=session.get('user_id'),
+            dados_novos={
+                'cliente_id': cliente_id,
+                'produto_id': produto_id,
+                'capacity_atual': capacity_atual,
+                'capacity_necessario': capacity_necessario,
+                'data_vigencia': data_vigencia,
+                'observacoes': observacoes
+            },
+            ip_address=ip_address
         )
         
         return jsonify({

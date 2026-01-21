@@ -12,6 +12,7 @@ from models.centro_custo import CentroCustoModel
 from models.plano_conta import PlanoContaModel
 from models.fornecedor import FornecedorModel
 from models.cliente import ClienteModel
+from utils.auditoria import auditar_agora
 
 lancamentos_bp = Blueprint('lancamentos', __name__, url_prefix='/lancamentos')
 

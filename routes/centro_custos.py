@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.centro_custo import CentroCustoModel
 from models.filial import FilialModel
+from utils.auditoria import auditar_agora
 
 centro_custos_bp = Blueprint('centro_custos', __name__, url_prefix='/centro-custos')
 
@@ -46,6 +47,9 @@ def novo():
         
         result = CentroCustoModel.create(dados)
         if result['success']:
+            # Auditoria
+            auditar_agora('centro_custos', result.get('id', 0), 'insert', dados)
+            
             flash(f'Centro de custo {result["codigo"]} cadastrado com sucesso!', 'success')
             return redirect(url_for('centro_custos.lista'))
         else:
@@ -79,6 +83,10 @@ def editar(centro_custo_id):
                 return redirect(url_for('centro_custos.editar', centro_custo_id=centro_custo_id))
         
         CentroCustoModel.update(centro_custo_id, dados)
+        
+        # Auditoria
+        auditar_agora('centro_custos', centro_custo_id, 'update', dados)
+        
         flash('Centro de custo atualizado com sucesso!', 'success')
         return redirect(url_for('centro_custos.lista'))
     
@@ -95,6 +103,10 @@ def editar(centro_custo_id):
 def deletar(centro_custo_id):
     try:
         CentroCustoModel.delete(centro_custo_id)
+        
+        # Auditoria
+        auditar_agora('centro_custos', centro_custo_id, 'delete')
+        
         return jsonify({'success': True, 'message': 'Centro de custo desativado'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

@@ -33,15 +33,15 @@ class AuditoriaModel:
             
             query = """
                 INSERT INTO auditoria 
-                (tabela, registro_id, acao, usuario_id, dados_anteriores, dados_novos, ip_address)
+                (usuario_id, acao, tabela, registro_id, dados_anteriores, dados_novos, ip_address)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
             
             cursor.execute(query, (
+                usuario_id,
+                acao,
                 tabela,
                 registro_id,
-                acao,
-                usuario_id,
                 dados_ant_json,
                 dados_nov_json,
                 ip_address
@@ -134,18 +134,18 @@ class AuditoriaModel:
                     params.append(filtros['acao'])
                 
                 if filtros.get('data_inicio'):
-                    query += " AND DATE(a.data_hora) >= %s"
+                    query += " AND DATE(a.created_at) >= %s"
                     params.append(filtros['data_inicio'])
                 
                 if filtros.get('data_fim'):
-                    query += " AND DATE(a.data_hora) <= %s"
+                    query += " AND DATE(a.created_at) <= %s"
                     params.append(filtros['data_fim'])
                 
                 if filtros.get('registro_id'):
                     query += " AND a.registro_id = %s"
                     params.append(filtros['registro_id'])
             
-            query += " ORDER BY a.data_hora DESC LIMIT %s OFFSET %s"
+            query += " ORDER BY a.created_at DESC LIMIT %s OFFSET %s"
             params.extend([limit, offset])
             
             cursor.execute(query, params)
@@ -214,7 +214,7 @@ class AuditoriaModel:
                 FROM auditoria a
                 LEFT JOIN users u ON a.usuario_id = u.id
                 WHERE a.tabela = %s AND a.registro_id = %s
-                ORDER BY a.data_hora DESC
+                ORDER BY a.created_at ASC
             """
             
             cursor.execute(query, (tabela, registro_id))
@@ -250,7 +250,7 @@ class AuditoriaModel:
                 FROM auditoria a
                 LEFT JOIN users u ON a.usuario_id = u.id
                 WHERE a.usuario_id = %s
-                ORDER BY a.data_hora DESC
+                ORDER BY a.created_at DESC
                 LIMIT %s
             """
             
