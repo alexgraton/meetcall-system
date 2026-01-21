@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Margem Operacional - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">💰 Análise de Margem Operacional</h1>
+            <p class="text-gray-600 mt-1">Controle de rentabilidade por cliente e produto</p>
+        </div>
+        <button onclick="abrirModalNovaCompetencia()" 
+                class="bg-meetcall-purple hover:bg-meetcall-purple-dark text-white px-4 py-2 rounded-lg transition duration-300">
+            <i class="fas fa-plus mr-2"></i>
+            Nova Competência
+        </button>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Grid de Competências -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for competencia in competencias %}
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-2xl font-bold text-gray-900">{{ competencia.competencia }}</h3>
+                    {% if competencia.status == 'aberta' %}
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Aberta</span>
+                    {% elif competencia.status == 'fechada' %}
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">Fechada</span>
+                    {% else %}
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">Processando</span>
+                    {% endif %}
+                </div>
+                
+                <p class="text-sm text-gray-500 mb-4">
+                    Criada em {{ competencia.data_abertura.strftime('%d/%m/%Y às %H:%M') }}<br>
+                    por {{ competencia.usuario_abertura_nome }}
+                </p>
+                
+                <div class="space-y-2">
+                    <a href="{{ url_for('margem.competencia_detalhe', competencia_id=competencia.id) }}" 
+                       class="block w-full text-center px-4 py-2 bg-meetcall-purple hover:bg-meetcall-purple-dark text-white rounded-lg transition duration-300">
+                        <i class="fas fa-eye mr-2"></i>
+                        Visualizar
+                    </a>
+                    <a href="{{ url_for('margem.dashboard', competencia_id=competencia.id) }}" 
+                       class="block w-full text-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition duration-300">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-12">
+            <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">Nenhuma competência cadastrada</p>
+            <p class="text-gray-400 text-sm mt-2">Clique em "Nova Competência" para começar</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Nova Competência -->
+<div id="modalNovaCompetencia" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-lg bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Nova Competência</h3>
+            <button onclick="fecharModalCompetencia()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <form id="formCompetencia" onsubmit="salvarCompetencia(event)">
+            <div class="mb-4">
+                <label for="competencia" class="block text-sm font-medium text-gray-700 mb-2">
+                    Competência (MM/AAAA) *
+                </label>
+                <input type="text" 
+                       id="competencia" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-meetcall-purple focus:border-transparent" 
+                       required
+                       placeholder="12/2025"
+                       pattern="\d{2}/\d{4}"
+                       maxlength="7">
+                <p class="text-xs text-gray-500 mt-1">Formato: MM/AAAA (exemplo: 12/2025)</p>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button type="button" 
+                        onclick="fecharModalCompetencia()" 
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-300">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-meetcall-purple text-white rounded-lg hover:bg-meetcall-purple-dark transition duration-300">
+                    <i class="fas fa-save mr-2"></i>
+                    Criar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalNovaCompetencia() {
+    // Define competência padrão como mês/ano atual
+    const hoje = new Date();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ano = hoje.getFullYear();
+    document.getElementById('competencia').value = `${mes}/${ano}`;
+    
+    document.getElementById('modalNovaCompetencia').classList.remove('hidden');
+}
+
+function fecharModalCompetencia() {
+    document.getElementById('modalNovaCompetencia').classList.add('hidden');
+    document.getElementById('formCompetencia').reset();
+}
+
+async function salvarCompetencia(event) {
+    event.preventDefault();
+    
+    const competencia = document.getElementById('competencia').value;
+    
+    console.log('Criando competência:', competencia);
+    
+    try {
+        const response = await fetch('/margem/api/competencia/criar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ competencia })
+        });
+        
+        console.log('Status da resposta:', response.status);
+        
+        const result = await response.json();
+        console.log('Resultado:', result);
+        
+        if (response.ok && result.success) {
+            fecharModalCompetencia();
+            window.location.reload();
+        } else {
+            mostrarMensagem('Erro: ' + (result.message || 'Erro desconhecido'), 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao criar competência:', error);
+        mostrarMensagem('Erro ao criar competência: ' + error.message, 'error');
+    }
+}
+
+// Fechar modal ao clicar fora
+document.getElementById('modalNovaCompetencia').addEventListener('click', function(event) {
+    if (event.target === this) {
+        fecharModalCompetencia();
+    }
+});
+
+// Função para mostrar mensagem discreta
+function mostrarMensagem(texto, tipo = 'success') {
+    const mensagem = document.createElement('div');
+    mensagem.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-500 ${
+        tipo === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    mensagem.textContent = texto;
+    document.body.appendChild(mensagem);
+    
+    setTimeout(() => {
+        mensagem.style.opacity = '0';
+        setTimeout(() => mensagem.remove(), 500);
+    }, 3000);
+}
+</script>
+{% endblock %}

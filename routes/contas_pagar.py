@@ -109,6 +109,7 @@ def nova():
             'tipo_recorrencia': request.form.get('tipo_recorrencia') or None,
             'data_emissao': request.form.get('data_emissao'),
             'data_vencimento': request.form.get('data_vencimento'),
+            'referencia': request.form.get('referencia'),
             'percentual_juros': request.form.get('percentual_juros', 0),
             'percentual_multa': request.form.get('percentual_multa', 0),
             'created_by': session.get('user_id')

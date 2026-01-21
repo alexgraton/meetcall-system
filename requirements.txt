@@ -5,3 +5,7 @@ python-dotenv==1.0.0
 bcrypt==4.0.1
 pandas==2.1.4
 openpyxl==3.1.2
+
+# Servidores de produção (escolher um)
+gunicorn==21.2.0  # Linux/Mac
+waitress==2.1.2   # Windows

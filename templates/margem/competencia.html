@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Competência {{ competencia.competencia }} - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('margem.index') }}" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900">Competência {{ competencia.competencia }}</h1>
+                {% if competencia.status == 'aberta' %}
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Aberta</span>
+                {% else %}
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">Fechada</span>
+                {% endif %}
+            </div>
+            <p class="text-gray-600 mt-1">Análise de rentabilidade da competência</p>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-blue-600 font-medium">Total Receitas</p>
+                    <p class="text-2xl font-bold text-blue-900">R$ {{ "{:,.2f}".format(status.receitas.valor_total or 0) }}</p>
+                </div>
+                <i class="fas fa-money-bill-wave text-3xl text-blue-300"></i>
+            </div>
+        </div>
+
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-red-600 font-medium">Total Despesas</p>
+                    <p class="text-2xl font-bold text-red-900">R$ {{ "{:,.2f}".format(status.despesas.valor_total or 0) }}</p>
+                </div>
+                <i class="fas fa-file-invoice-dollar text-3xl text-red-300"></i>
+            </div>
+        </div>
+
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-green-600 font-medium">Margem</p>
+                    <p class="text-2xl font-bold text-green-900">R$ {{ "{:,.2f}".format((status.receitas.valor_total or 0) - (status.despesas.valor_total or 0)) }}</p>
+                </div>
+                <i class="fas fa-chart-line text-3xl text-green-300"></i>
+            </div>
+        </div>
+
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-purple-600 font-medium">% Margem</p>
+                    {% if status.receitas.valor_total and status.receitas.valor_total > 0 %}
+                        {% set margem_percent = ((status.receitas.valor_total - (status.despesas.valor_total or 0)) / status.receitas.valor_total * 100) %}
+                        <p class="text-2xl font-bold text-purple-900">{{ "{:.1f}".format(margem_percent) }}%</p>
+                    {% else %}
+                        <p class="text-2xl font-bold text-purple-900">0%</p>
+                    {% endif %}
+                </div>
+                <i class="fas fa-percentage text-3xl text-purple-300"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu de Ações -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Receitas -->
+        <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-coins text-blue-500 mr-3"></i>
+                        Rateio de Receitas
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">Distribuir receitas entre clientes e produtos</p>
+                </div>
+                {% if status.receitas.rateadas > 0 %}
+                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                    {{ status.receitas.rateadas }} rateadas
+                </span>
+                {% endif %}
+            </div>
+            
+            <a href="{{ url_for('margem.receitas', competencia_id=competencia.id) }}" 
+               class="block w-full text-center px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition duration-300 font-medium">
+                <i class="fas fa-arrow-right mr-2"></i>
+                Gerenciar Receitas
+            </a>
+        </div>
+
+        <!-- Despesas -->
+        <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-receipt text-red-500 mr-3"></i>
+                        Rateio de Despesas
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">Distribuir despesas entre clientes e produtos</p>
+                </div>
+                {% if status.despesas.rateadas > 0 %}
+                <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                    {{ status.despesas.rateadas }} rateadas
+                </span>
+                {% endif %}
+            </div>
+            
+            <a href="{{ url_for('margem.despesas', competencia_id=competencia.id) }}" 
+               class="block w-full text-center px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg transition duration-300 font-medium">
+                <i class="fas fa-arrow-right mr-2"></i>
+                Gerenciar Despesas
+            </a>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-chart-bar text-green-500 mr-3"></i>
+                        Dashboard
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">Visualizar análises e gráficos de margem</p>
+                </div>
+            </div>
+            
+            <a href="{{ url_for('margem.dashboard', competencia_id=competencia.id) }}" 
+               class="block w-full text-center px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg transition duration-300 font-medium">
+                <i class="fas fa-arrow-right mr-2"></i>
+                Ver Dashboard
+            </a>
+        </div>
+
+        <!-- Fechar Competência -->
+        <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-lock text-gray-500 mr-3"></i>
+                        Fechar Competência
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">Bloquear edições e finalizar análise</p>
+                </div>
+            </div>
+            
+            {% if competencia.status == 'aberta' %}
+            <button onclick="fecharCompetencia()" 
+                    class="block w-full text-center px-4 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition duration-300 font-medium">
+                <i class="fas fa-lock mr-2"></i>
+                Fechar Competência
+            </button>
+            {% else %}
+            <div class="text-center py-3 text-gray-500">
+                <i class="fas fa-check-circle mr-2"></i>
+                Competência Fechada
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+async function fecharCompetencia() {
+    if (!confirm('Deseja realmente fechar esta competência? Após fechar, não será possível fazer mais alterações.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/margem/api/fechar/{{ competencia.id }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            window.location.reload();
+        } else {
+            mostrarMensagem('Erro: ' + (result.message || 'Erro desconhecido'), 'error');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarMensagem('Erro ao fechar competência: ' + error.message, 'error');
+    }
+}
+
+function mostrarMensagem(texto, tipo = 'success') {
+    const mensagem = document.createElement('div');
+    mensagem.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-500 ${
+        tipo === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    mensagem.textContent = texto;
+    document.body.appendChild(mensagem);
+    
+    setTimeout(() => {
+        mensagem.style.opacity = '0';
+        setTimeout(() => mensagem.remove(), 500);
+    }, 3000);
+}
+</script>
+{% endblock %}

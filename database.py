@@ -131,7 +131,7 @@ class DatabaseManager:
             return cursor.fetchone()
     
     def update_user_password(self, email, new_password):
-        """Atualiza a senha de um usuário"""
+        """Atualiza a senha de um usuário pelo email"""
         password_hash = self._hash_password(new_password)
         
         with self.get_connection() as connection:
@@ -144,6 +144,24 @@ class DatabaseManager:
             """
             
             cursor.execute(query, (password_hash, email))
+            connection.commit()
+            
+            return cursor.rowcount > 0
+    
+    def update_user_password_by_id(self, user_id, new_password):
+        """Atualiza a senha de um usuário pelo ID"""
+        password_hash = self._hash_password(new_password)
+        
+        with self.get_connection() as connection:
+            cursor = connection.cursor()
+            
+            query = """
+            UPDATE users 
+            SET password_hash = %s 
+            WHERE id = %s AND is_active = TRUE
+            """
+            
+            cursor.execute(query, (password_hash, user_id))
             connection.commit()
             
             return cursor.rowcount > 0

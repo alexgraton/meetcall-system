@@ -133,6 +133,13 @@
                                         <i class="fas fa-check-double mr-2 w-4"></i>Conciliação Bancária
                                     </a>
                                     <div class="border-t border-gray-100 my-1"></div>
+                                    <a href="{{ url_for('margem.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-percent mr-2 w-4"></i>Margem Operacional
+                                    </a>
+                                    <a href="{{ url_for('capacity.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-users mr-2 w-4"></i>Capacity
+                                    </a>
+                                    <div class="border-t border-gray-100 my-1"></div>
                                     <a href="{{ url_for('plano_contas.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-chart-line mr-2 w-4"></i>Plano de Contas
                                     </a>
@@ -219,6 +226,12 @@
                     </a>
                     <a href="{{ url_for('conciliacao.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-check-double mr-2 ml-2"></i>Conciliação Bancária
+                    </a>
+                    <a href="{{ url_for('margem.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-percent mr-2 ml-2"></i>Margem Operacional
+                    </a>
+                    <a href="{{ url_for('capacity.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-users mr-2 ml-2"></i>Capacity
                     </a>
                     <a href="{{ url_for('contas_pagar.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-file-invoice-dollar mr-2 ml-2"></i>Contas a Pagar

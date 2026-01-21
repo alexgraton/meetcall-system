@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block title %}Rateio de Receitas - {{ competencia.competencia }} - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('margem.competencia_detalhe', competencia_id=competencia.id) }}" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Rateio de Receitas</h1>
+                <p class="text-gray-600 mt-1">Competência {{ competencia.competencia }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Receitas em Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {% for receita in receitas %}
+        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow duration-200 flex flex-col">
+            <div class="mb-3">
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ receita.cliente_nome }}</h3>
+                <p class="text-sm text-gray-500">{{ receita.data_vencimento.strftime('%d/%m/%Y') }}</p>
+                {% if receita.produtos %}
+                <span class="inline-block mt-1 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">{{ receita.produtos|length }} produto(s)</span>
+                {% endif %}
+            </div>
+            
+            <div class="mb-3">
+                <p class="text-2xl font-bold text-blue-900">R$ {{ "{:,.2f}".format(receita.valor_total) }}</p>
+                {% if receita.rateios %}
+                <span class="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Rateada</span>
+                {% else %}
+                <span class="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pendente</span>
+                {% endif %}
+            </div>
+
+            <!-- Rateios existentes -->
+            {% if receita.rateios %}
+            <div class="mb-3 pb-3 border-t border-gray-200 pt-3">
+                <p class="text-xs font-medium text-gray-600 mb-2">Rateio:</p>
+                {% for rateio in receita.rateios %}
+                <div class="text-xs text-gray-700 mb-1">
+                    <span>{{ rateio.produto_nome or 'Cliente' }}</span>
+                    <span class="font-semibold float-right">{{ "{:.0f}".format(rateio.percentual) }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mt-auto">
+                {% if receita.rateios %}
+                <!-- Receita já rateada - botão para editar -->
+                {% if not receita.produtos %}
+                <button disabled class="w-full px-3 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed text-sm">
+                    <i class="fas fa-check mr-1"></i> Vinculada
+                </button>
+                {% else %}
+                <button data-receita-id="{{ receita.id }}" 
+                        data-valor-total="{{ receita.valor_total }}" 
+                        data-cliente-id="{{ receita.cliente_id }}" 
+                        data-cliente-nome="{{ receita.cliente_nome }}" 
+                        data-produtos='{{ receita.produtos|tojson }}'
+                        class="btn-ratear w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition duration-300 text-sm">
+                    <i class="fas fa-edit mr-1"></i> Editar Rateio
+                </button>
+                {% endif %}
+                {% else %}
+                <!-- Receita ainda não rateada - botões para ratear -->
+                {% if not receita.produtos %}
+                <button data-receita-id="{{ receita.id }}" 
+                        data-cliente-id="{{ receita.cliente_id }}" 
+                        data-cliente-nome="{{ receita.cliente_nome }}" 
+                        data-valor-total="{{ receita.valor_total }}"
+                        class="btn-vincular w-full px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition duration-300 text-sm">
+                    <i class="fas fa-check mr-1"></i> Vincular 100%
+                </button>
+                {% else %}
+                <button data-receita-id="{{ receita.id }}" 
+                        data-valor-total="{{ receita.valor_total }}" 
+                        data-cliente-id="{{ receita.cliente_id }}" 
+                        data-cliente-nome="{{ receita.cliente_nome }}" 
+                        data-produtos='{{ receita.produtos|tojson }}'
+                        class="btn-ratear w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition duration-300 text-sm">
+                    <i class="fas fa-edit mr-1"></i> Ratear
+                </button>
+                {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-12">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">Nenhuma receita encontrada para esta competência</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Vincular 100% -->
+<div id="modalConfirmacao" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Confirmar Vinculação</h3>
+                <button onclick="fecharModalConfirmacao()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4">
+            <div class="mb-4">
+                <i class="fas fa-info-circle text-blue-500 text-3xl mb-3"></i>
+                <p class="text-gray-700 mb-2">Você está prestes a vincular 100% desta receita ao cliente:</p>
+                <p class="font-semibold text-lg text-gray-900" id="confirmacaoClienteNome"></p>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700">Valor Total:</span>
+                    <span class="text-xl font-bold text-blue-900" id="confirmacaoValor"></span>
+                </div>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-gray-700">Percentual:</span>
+                    <span class="text-lg font-semibold text-green-600">100%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex gap-3">
+            <button onclick="fecharModalConfirmacao()" 
+                    class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition duration-300">
+                Cancelar
+            </button>
+            <button onclick="confirmarVinculacao()" 
+                    class="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition duration-300">
+                <i class="fas fa-check mr-1"></i> Confirmar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Produtos -->
+<div id="modalRateio" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-3xl shadow-lg rounded-lg bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Rateio por Produtos</h3>
+            <button onclick="fecharModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <form id="formRateio" onsubmit="salvarRateio(event)">
+            <input type="hidden" id="receitaId">
+            <input type="hidden" id="clienteId">
+            
+            <div class="mb-4 p-4 bg-blue-50 rounded-lg">
+                <p class="text-sm text-blue-600">Cliente</p>
+                <p id="clienteNome" class="text-lg font-semibold text-blue-900"></p>
+                <p class="text-sm text-blue-600 mt-2">Valor Total</p>
+                <p id="receitaValor" class="text-2xl font-bold text-blue-900"></p>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-sm font-medium text-gray-700 mb-3">Distribua o percentual entre os produtos:</p>
+                <div id="listaProdutos" class="space-y-2"></div>
+            </div>
+
+            <div class="mb-4 p-3 bg-gray-100 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700">Total Rateado:</span>
+                    <span id="totalRateado" class="text-xl font-bold">0%</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button type="button" onclick="fecharModal()" 
+                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition duration-300">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-300">
+                    <i class="fas fa-save mr-2"></i>
+                    Salvar Rateio
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const COMPETENCIA_ID = {{ competencia.id }};
+let receitaAtual = null;
+let produtosData = [];
+let dadosConfirmacao = {};
+
+// Event listeners para os botões
+document.addEventListener('DOMContentLoaded', function() {
+    // Botões de vincular 100%
+    document.querySelectorAll('.btn-vincular').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const receitaId = parseInt(this.dataset.receitaId);
+            const clienteId = parseInt(this.dataset.clienteId);
+            const clienteNome = this.dataset.clienteNome;
+            const valorTotal = parseFloat(this.dataset.valorTotal);
+            abrirModalConfirmacao(receitaId, clienteId, clienteNome, valorTotal);
+        });
+    });
+    
+    // Botões de ratear por produtos
+    document.querySelectorAll('.btn-ratear').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const receitaId = parseInt(this.dataset.receitaId);
+            const valorTotal = parseFloat(this.dataset.valorTotal);
+            const clienteId = parseInt(this.dataset.clienteId);
+            const clienteNome = this.dataset.clienteNome;
+            const produtos = JSON.parse(this.dataset.produtos);
+            abrirModalRateio(receitaId, valorTotal, clienteId, clienteNome, produtos);
+        });
+    });
+});
+
+// Abrir modal de confirmação
+function abrirModalConfirmacao(receitaId, clienteId, clienteNome, valorTotal) {
+    dadosConfirmacao = {
+        receitaId: receitaId,
+        clienteId: clienteId,
+        clienteNome: clienteNome,
+        valorTotal: valorTotal
+    };
+    
+    document.getElementById('confirmacaoClienteNome').textContent = clienteNome;
+    document.getElementById('confirmacaoValor').textContent = 'R$ ' + valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('modalConfirmacao').classList.remove('hidden');
+}
+
+// Fechar modal de confirmação
+function fecharModalConfirmacao() {
+    document.getElementById('modalConfirmacao').classList.add('hidden');
+    dadosConfirmacao = {};
+}
+
+// Confirmar vinculação
+async function confirmarVinculacao() {
+    try {
+        const response = await fetch('/margem/api/receita/ratear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                competencia_id: COMPETENCIA_ID,
+                conta_receber_id: dadosConfirmacao.receitaId,
+                rateios: [{
+                    cliente_id: dadosConfirmacao.clienteId,
+                    produto_id: null,
+                    percentual: 100,
+                    valor: dadosConfirmacao.valorTotal
+                }]
+            })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+            mostrarMensagem('Receita vinculada ao cliente com sucesso!', 'success');
+            fecharModalConfirmacao();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            mostrarMensagem('Erro: ' + (result.message || 'Não foi possível vincular a receita'), 'error');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarMensagem('Erro ao vincular receita', 'error');
+    }
+}
+
+// Abre modal com produtos
+function abrirModalRateio(receitaId, valorTotal, clienteId, clienteNome, produtos) {
+    receitaAtual = { id: receitaId, valor: valorTotal, clienteId: clienteId };
+    produtosData = produtos;
+    
+    document.getElementById('receitaId').value = receitaId;
+    document.getElementById('clienteId').value = clienteId;
+    document.getElementById('clienteNome').textContent = clienteNome;
+    document.getElementById('receitaValor').textContent = 'R$ ' + valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    
+    // Gera linhas para cada produto
+    const container = document.getElementById('listaProdutos');
+    container.innerHTML = '';
+    
+    const percentualPadrao = produtos.length > 0 ? (100 / produtos.length).toFixed(2) : 0;
+    
+    produtos.forEach((produto, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50';
+        div.innerHTML = `
+            <div class="flex-1">
+                <p class="font-medium text-gray-900">${produto.nome}</p>
+                ${produto.descricao ? `<p class="text-sm text-gray-500">${produto.descricao}</p>` : ''}
+            </div>
+            <div class="w-32">
+                <input type="number" 
+                       id="produto-${produto.id}" 
+                       data-produto-id="${produto.id}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-semibold" 
+                       placeholder="%" 
+                       min="0" 
+                       max="100" 
+                       step="0.01" 
+                       value="${percentualPadrao}"
+                       required 
+                       onchange="calcularTotal()">
+                <label class="text-xs text-gray-500 text-center block mt-1">%</label>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+    
+    calcularTotal();
+    document.getElementById('modalRateio').classList.remove('hidden');
+}
+
+function fecharModal() {
+    document.getElementById('modalRateio').classList.add('hidden');
+    receitaAtual = null;
+}
+
+function calcularTotal() {
+    let total = 0;
+    document.querySelectorAll('[id^="produto-"]').forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    
+    const el = document.getElementById('totalRateado');
+    el.textContent = total.toFixed(1) + '%';
+    el.className = Math.abs(total - 100) < 0.1 ? 'text-xl font-bold text-green-600' : 'text-xl font-bold text-red-600';
+}
+
+async function salvarRateio(event) {
+    event.preventDefault();
+    
+    const rateios = [];
+    const clienteId = parseInt(document.getElementById('clienteId').value);
+    const valorTotal = receitaAtual.valor;
+    
+    document.querySelectorAll('[id^="produto-"]').forEach(input => {
+        const produtoId = parseInt(input.dataset.produtoId);
+        const percentual = parseFloat(input.value);
+        
+        if (percentual > 0) {
+            rateios.push({
+                cliente_id: clienteId,
+                produto_id: produtoId,
+                percentual: percentual,
+                valor: (valorTotal * percentual / 100)
+            });
+        }
+    });
+    
+    const total = rateios.reduce((sum, r) => sum + r.percentual, 0);
+    if (Math.abs(total - 100) > 0.1) {
+        mostrarMensagem('O total dos percentuais deve ser 100%', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/margem/api/receita/ratear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                competencia_id: COMPETENCIA_ID,
+                conta_receber_id: receitaAtual.id,
+                rateios: rateios
+            })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+            fecharModal();
+            window.location.reload();
+        } else {
+            mostrarMensagem('Erro: ' + (result.message || 'desconhecido'), 'error');
+        }
+    } catch (error) {
+        mostrarMensagem('Erro: ' + error.message, 'error');
+    }
+}
+
+function mostrarMensagem(texto, tipo = 'success') {
+    const m = document.createElement('div');
+    m.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-500 ${
+        tipo === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    m.textContent = texto;
+    document.body.appendChild(m);
+    setTimeout(() => { m.style.opacity = '0'; setTimeout(() => m.remove(), 500); }, 3000);
+}
+</script>
+{% endblock %}

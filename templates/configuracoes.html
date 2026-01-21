@@ -8,35 +8,59 @@
         <h1 class="text-3xl font-bold text-gray-900">
             <i class="fas fa-cog text-meetcall-purple mr-3"></i>Configurações
         </h1>
-        <p class="mt-2 text-sm text-gray-600">Personalize o sistema conforme suas necessidades</p>
+        <p class="mt-2 text-sm text-gray-600">Gerencie usuários e sistema</p>
     </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Configurações Gerais -->
+        <!-- Gerenciamento de Usuários -->
         <div class="bg-white rounded-xl shadow-lg p-6 fade-in">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-sliders-h text-meetcall-purple mr-2"></i>Configurações Gerais
+                <i class="fas fa-users text-meetcall-purple mr-2"></i>Gerenciamento de Usuários
             </h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="flex items-center justify-between cursor-pointer">
-                        <span class="text-gray-700">Notificações por Email</span>
-                        <input type="checkbox" class="toggle-checkbox" checked>
-                    </label>
-                </div>
-                <div>
-                    <label class="flex items-center justify-between cursor-pointer">
-                        <span class="text-gray-700">Modo Escuro</span>
-                        <input type="checkbox" class="toggle-checkbox">
-                    </label>
-                </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">Idioma</label>
-                    <select class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
-                        <option>Português (BR)</option>
-                        <option>English</option>
-                        <option>Español</option>
-                    </select>
+            <div class="space-y-3">
+                <button onclick="openUserModal()" class="w-full bg-meetcall-purple text-white px-4 py-2 rounded-lg hover:bg-meetcall-purple-dark transition">
+                    <i class="fas fa-user-plus mr-2"></i>Cadastrar Novo Usuário
+                </button>
+                <button onclick="openUserList()" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+                    <i class="fas fa-list mr-2"></i>Listar e Editar Usuários
+                </button>
+            </div>
+
+            <!-- Lista de Usuários -->
+            <div id="userListContainer" class="mt-4 hidden">
+                <div class="border-t pt-4">
+                    <h4 class="font-semibold mb-3">Usuários Cadastrados</h4>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        {% for user in users %}
+                        <div class="bg-gray-50 p-3 rounded-lg flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">{{ user.name }}</p>
+                                <p class="text-sm text-gray-600">{{ user.email }}</p>
+                                <p class="text-xs text-gray-500">Role: {{ user.role }}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="editUser({{ user.id }}, '{{ user.name }}', '{{ user.email }}', '{{ user.role }}')" 
+                                        class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 text-sm">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="resetUserPassword({{ user.id }}, '{{ user.name }}')" 
+                                        class="bg-orange-500 text-white px-3 py-1 rounded hover:bg-orange-600 text-sm">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -46,51 +70,223 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <i class="fas fa-shield-alt text-meetcall-orange mr-2"></i>Segurança
             </h3>
-            <div class="space-y-4">
-                <button class="w-full bg-meetcall-purple text-white px-4 py-2 rounded-lg hover:bg-meetcall-purple-dark transition">
-                    <i class="fas fa-key mr-2"></i>Alterar Senha
+            <div class="space-y-3">
+                <button onclick="openChangePasswordModal()" class="w-full bg-meetcall-purple text-white px-4 py-2 rounded-lg hover:bg-meetcall-purple-dark transition">
+                    <i class="fas fa-key mr-2"></i>Alterar Minha Senha
                 </button>
-                <button class="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
-                    <i class="fas fa-mobile-alt mr-2"></i>Autenticação em 2 Fatores
+            </div>
+        </div>
+
+        <!-- Backup do Sistema -->
+        <div class="bg-white rounded-xl shadow-lg p-6 fade-in lg:col-span-2" style="animation-delay: 0.2s;">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-database text-green-600 mr-2"></i>Backup do Banco de Dados
+            </h3>
+            <div class="space-y-3">
+                <p class="text-sm text-gray-600">Gere um backup completo do banco de dados do sistema</p>
+                <button onclick="backupDatabase()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition">
+                    <i class="fas fa-download mr-2"></i>Gerar Backup Agora
                 </button>
-                <button class="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-                    <i class="fas fa-sign-out-alt mr-2"></i>Encerrar Todas as Sessões
-                </button>
+                <div id="backupStatus" class="mt-2 text-sm"></div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .toggle-checkbox {
-        appearance: none;
-        width: 48px;
-        height: 24px;
-        background: #cbd5e0;
-        border-radius: 12px;
-        position: relative;
-        cursor: pointer;
-        transition: all 0.3s;
+<!-- Modal: Cadastrar/Editar Usuário -->
+<div id="userModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4" id="modalTitle">Cadastrar Novo Usuário</h3>
+        <form id="userForm" method="POST" action="/configuracoes/usuario">
+            <input type="hidden" id="userId" name="user_id" value="">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                    <input type="text" id="userName" name="name" required 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="userEmail" name="email" required 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+                <div id="passwordField">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <input type="password" id="userPassword" name="password" 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Perfil</label>
+                    <select id="userRole" name="role" required 
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                        <option value="user">Usuário</option>
+                        <option value="admin">Administrador</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 bg-meetcall-purple text-white px-4 py-2 rounded-lg hover:bg-meetcall-purple-dark transition">
+                    Salvar
+                </button>
+                <button type="button" onclick="closeUserModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Alterar Senha -->
+<div id="changePasswordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">Alterar Minha Senha</h3>
+        <form id="changePasswordForm" method="POST" action="/configuracoes/alterar-senha">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha Atual</label>
+                    <input type="password" name="current_password" required 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+                    <input type="password" name="new_password" required 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Nova Senha</label>
+                    <input type="password" name="confirm_password" required 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 bg-meetcall-purple text-white px-4 py-2 rounded-lg hover:bg-meetcall-purple-dark transition">
+                    Alterar Senha
+                </button>
+                <button type="button" onclick="closeChangePasswordModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Resetar Senha -->
+<div id="resetPasswordModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-4">Resetar Senha do Usuário</h3>
+        <form id="resetPasswordForm" method="POST" action="/configuracoes/resetar-senha">
+            <input type="hidden" id="resetUserId" name="user_id" value="">
+            <p class="text-gray-600 mb-4">Resetar senha do usuário: <strong id="resetUserName"></strong></p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nova Senha</label>
+                    <input type="password" name="new_password" required 
+                           class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-meetcall-purple focus:border-transparent">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="submit" class="flex-1 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
+                    Resetar Senha
+                </button>
+                <button type="button" onclick="closeResetPasswordModal()" class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition">
+                    Cancelar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openUserModal() {
+    document.getElementById('modalTitle').textContent = 'Cadastrar Novo Usuário';
+    document.getElementById('userId').value = '';
+    document.getElementById('userName').value = '';
+    document.getElementById('userEmail').value = '';
+    document.getElementById('userPassword').value = '';
+    document.getElementById('userPassword').required = true;
+    document.getElementById('userRole').value = 'user';
+    document.getElementById('userModal').classList.remove('hidden');
+    document.getElementById('userModal').classList.add('flex');
+}
+
+function closeUserModal() {
+    document.getElementById('userModal').classList.add('hidden');
+    document.getElementById('userModal').classList.remove('flex');
+}
+
+function openUserList() {
+    const container = document.getElementById('userListContainer');
+    container.classList.toggle('hidden');
+}
+
+function editUser(id, name, email, role) {
+    document.getElementById('modalTitle').textContent = 'Editar Usuário';
+    document.getElementById('userId').value = id;
+    document.getElementById('userName').value = name;
+    document.getElementById('userEmail').value = email;
+    document.getElementById('userPassword').required = false;
+    document.getElementById('userRole').value = role;
+    document.getElementById('userModal').classList.remove('hidden');
+    document.getElementById('userModal').classList.add('flex');
+}
+
+function openChangePasswordModal() {
+    document.getElementById('changePasswordModal').classList.remove('hidden');
+    document.getElementById('changePasswordModal').classList.add('flex');
+}
+
+function closeChangePasswordModal() {
+    document.getElementById('changePasswordModal').classList.add('hidden');
+    document.getElementById('changePasswordModal').classList.remove('flex');
+}
+
+function resetUserPassword(userId, userName) {
+    document.getElementById('resetUserId').value = userId;
+    document.getElementById('resetUserName').textContent = userName;
+    document.getElementById('resetPasswordModal').classList.remove('hidden');
+    document.getElementById('resetPasswordModal').classList.add('flex');
+}
+
+function closeResetPasswordModal() {
+    document.getElementById('resetPasswordModal').classList.add('hidden');
+    document.getElementById('resetPasswordModal').classList.remove('flex');
+}
+
+async function backupDatabase() {
+    const statusDiv = document.getElementById('backupStatus');
+    statusDiv.innerHTML = '<span class="text-blue-600"><i class="fas fa-spinner fa-spin mr-2"></i>Gerando backup...</span>';
+    
+    try {
+        const response = await fetch('/configuracoes/backup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'backup_' + new Date().toISOString().replace(/:/g, '-') + '.sql';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            statusDiv.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle mr-2"></i>Backup gerado com sucesso!</span>';
+        } else {
+            throw new Error('Erro ao gerar backup');
+        }
+    } catch (error) {
+        statusDiv.innerHTML = '<span class="text-red-600"><i class="fas fa-exclamation-circle mr-2"></i>Erro ao gerar backup: ' + error.message + '</span>';
     }
     
-    .toggle-checkbox:checked {
-        background: #6B46C1;
-    }
-    
-    .toggle-checkbox::before {
-        content: '';
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: white;
-        top: 2px;
-        left: 2px;
-        transition: all 0.3s;
-    }
-    
-    .toggle-checkbox:checked::before {
-        left: 26px;
-    }
-</style>
+    setTimeout(() => {
+        statusDiv.innerHTML = '';
+    }, 5000);
+}
+</script>
+
 {% endblock %}

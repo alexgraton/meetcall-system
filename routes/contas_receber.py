@@ -11,6 +11,7 @@ from models.tipo_servico import TipoServicoModel
 from models.centro_custo import CentroCustoModel
 from models.plano_conta import PlanoContaModel
 from models.filial import FilialModel
+import mysql.connector
 
 contas_receber_bp = Blueprint('contas_receber', __name__, url_prefix='/contas-receber')
 
@@ -252,7 +253,32 @@ def detalhes(conta_id):
         flash('Conta não encontrada.', 'error')
         return redirect(url_for('contas_receber.lista'))
     
-    return render_template('contas_receber/detalhes.html', conta=conta)
+    # Buscar competência associada (se houver rateio)
+    competencia = None
+    try:
+        conn = mysql.connector.connect(
+            host='localhost',
+            user='root',
+            password='root',
+            database='meetcall'
+        )
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT DISTINCT mc.competencia
+            FROM margem_rateio_receitas mrr
+            INNER JOIN margem_competencias mc ON mrr.competencia_id = mc.id
+            WHERE mrr.conta_receber_id = %s
+            LIMIT 1
+        """, (conta_id,))
+        result = cursor.fetchone()
+        if result:
+            competencia = result['competencia']
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"Erro ao buscar competência: {e}")
+    
+    return render_template('contas_receber/detalhes.html', conta=conta, competencia=competencia)
 
 @contas_receber_bp.route('/api/calcular-juros/<int:conta_id>')
 @login_required

@@ -30,10 +30,26 @@
                         {{ conta.status|upper }}
                     </span>
                 </div>
+                <div>
+                    <p class="text-sm text-gray-600">Competência:</p>
+                    {% if competencia %}
+                    <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+                        {{ competencia }}
+                    </span>
+                    {% else %}
+                    <span class="text-gray-400 text-sm">Não rateada</span>
+                    {% endif %}
+                </div>
                 <div class="col-span-2">
                     <p class="text-sm text-gray-600">Descrição:</p>
                     <p class="font-semibold">{{ conta.descricao }}</p>
                 </div>
+                {% if conta.referencia %}
+                <div>
+                    <p class="text-sm text-gray-600">Referência:</p>
+                    <p class="font-semibold">{{ conta.referencia }}</p>
+                </div>
+                {% endif %}
                 {% if conta.numero_documento %}
                 <div>
                     <p class="text-sm text-gray-600">Número do Documento:</p>

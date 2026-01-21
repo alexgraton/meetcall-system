@@ -23,10 +23,10 @@ class ContaPagarModel:
                      descricao, numero_documento, observacoes,
                      valor_total, numero_parcelas, parcela_atual,
                      recorrente, tipo_recorrencia,
-                     data_emissao, data_vencimento,
+                     data_emissao, data_vencimento, referencia,
                      percentual_juros, percentual_multa,
                      status, created_by)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 
                 cursor.execute(query, (
@@ -45,6 +45,7 @@ class ContaPagarModel:
                     dados.get('tipo_recorrencia'),
                     dados['data_emissao'],
                     dados['data_vencimento'],
+                    dados.get('referencia'),
                     dados.get('percentual_juros', 0),
                     dados.get('percentual_multa', 0),
                     'pendente',
@@ -81,10 +82,10 @@ class ContaPagarModel:
                  descricao, numero_documento, observacoes,
                  valor_total, numero_parcelas, parcela_atual,
                  recorrente, tipo_recorrencia,
-                 data_emissao, data_vencimento,
+                 data_emissao, data_vencimento, referencia,
                  percentual_juros, percentual_multa,
                  status, created_by)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             
             cursor.execute(query, (
@@ -103,6 +104,7 @@ class ContaPagarModel:
                 dados.get('tipo_recorrencia'),
                 dados['data_emissao'],
                 data_vencimento,
+                dados.get('referencia'),
                 dados.get('percentual_juros', 0),
                 dados.get('percentual_multa', 0),
                 'pendente',

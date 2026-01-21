@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}Rateio de Despesas - {{ competencia.competencia }} - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('margem.competencia_detalhe', competencia_id=competencia.id) }}" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Rateio de Despesas</h1>
+                <p class="text-gray-600 mt-1">Competência {{ competencia.competencia }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Despesas em Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {% for despesa in despesas %}
+        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow duration-200 flex flex-col">
+            <div class="mb-3">
+                <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ despesa.fornecedor_nome }}</h3>
+                <p class="text-sm text-gray-500">{{ despesa.data_vencimento.strftime('%d/%m/%Y') }}</p>
+            </div>
+            
+            <div class="mb-3">
+                <p class="text-2xl font-bold text-red-900">R$ {{ "{:,.2f}".format(despesa.valor_total) }}</p>
+                {% if despesa.rateios %}
+                <span class="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Rateada</span>
+                {% else %}
+                <span class="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">Pendente</span>
+                {% endif %}
+            </div>
+
+            <!-- Rateios existentes -->
+            {% if despesa.rateios %}
+            <div class="mb-3 pb-3 border-t border-gray-200 pt-3">
+                <p class="text-xs font-medium text-gray-600 mb-2">Rateio:</p>
+                {% for rateio in despesa.rateios %}
+                <div class="text-xs text-gray-700 mb-1">
+                    <span>{{ rateio.cliente_nome }}{% if rateio.produto_nome %} - {{ rateio.produto_nome }}{% endif %}</span>
+                    <span class="font-semibold float-right">{{ "{:.0f}".format(rateio.percentual) }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mt-auto">
+                {% if despesa.rateios %}
+                <!-- Despesa já rateada - botão para editar -->
+                <button data-despesa-id="{{ despesa.id }}" 
+                        data-valor-total="{{ despesa.valor_total }}" 
+                        data-fornecedor="{{ despesa.fornecedor_nome }}"
+                        class="btn-editar-rateio w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition duration-300 text-sm">
+                    <i class="fas fa-edit mr-1"></i> Editar Rateio
+                </button>
+                {% else %}
+                <!-- Despesa ainda não rateada -->
+                <button data-despesa-id="{{ despesa.id }}" 
+                        data-valor-total="{{ despesa.valor_total }}" 
+                        data-fornecedor="{{ despesa.fornecedor_nome }}"
+                        class="btn-ratear-despesa w-full px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition duration-300 text-sm">
+                    <i class="fas fa-calculator mr-1"></i> Ratear
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-12">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">Nenhuma despesa encontrada para esta competência</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal de Rateio de Despesas -->
+<div id="modalRateioDespesa" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-lg bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-900">Rateio de Despesa</h3>
+            <button onclick="fecharModalDespesa()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm text-gray-600">Fornecedor</p>
+                    <p class="font-semibold text-gray-900" id="despesaFornecedor"></p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">Valor Total</p>
+                    <p class="text-xl font-bold text-red-900" id="despesaValor"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métodos de Rateio -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Método de Rateio:</label>
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="selecionarMetodo('percentual')" id="btn-percentual" class="metodo-btn px-4 py-3 border-2 border-blue-500 bg-blue-50 text-blue-700 rounded-lg font-medium">
+                    <i class="fas fa-percent mr-2"></i>Percentual
+                </button>
+                <button onclick="selecionarMetodo('valor')" id="btn-valor" class="metodo-btn px-4 py-3 border-2 border-gray-300 bg-white text-gray-700 rounded-lg font-medium hover:border-blue-300">
+                    <i class="fas fa-dollar-sign mr-2"></i>Valor
+                </button>
+                <button onclick="selecionarMetodo('capacidade')" id="btn-capacidade" class="metodo-btn px-4 py-3 border-2 border-gray-300 bg-white text-gray-700 rounded-lg font-medium hover:border-blue-300">
+                    <i class="fas fa-users mr-2"></i>Capacidade
+                </button>
+            </div>
+        </div>
+
+        <form id="formRateioDespesa">
+            <input type="hidden" id="despesaId">
+            
+            <!-- Container para linhas de rateio -->
+            <div id="containerRateioDespesa" class="space-y-3 mb-4 max-h-96 overflow-y-auto">
+                <!-- Linhas serão adicionadas dinamicamente -->
+            </div>
+
+            <!-- Botão para adicionar linha -->
+            <button type="button" onclick="adicionarLinhaRateio()" class="mb-4 px-4 py-2 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-blue-400 hover:text-blue-600 w-full">
+                <i class="fas fa-plus mr-2"></i>Adicionar Cliente/Produto
+            </button>
+
+            <!-- Total -->
+            <div class="mb-4 p-3 bg-gray-100 rounded-lg">
+                <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-700">Total:</span>
+                    <span id="totalRateioDespesa" class="text-lg font-bold text-gray-900">0%</span>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="fecharModalDespesa()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition duration-300">
+                    Cancelar
+                </button>
+                <button type="button" onclick="salvarRateioDespesa()" class="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition duration-300">
+                    <i class="fas fa-save mr-2"></i>
+                    Salvar Rateio
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const COMPETENCIA_ID = {{ competencia.id }};
+const CLIENTES = {{ clientes|tojson }};
+let despesaAtual = null;
+let metodoRateio = 'percentual';
+let linhaCounter = 0;
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-ratear-despesa, .btn-editar-rateio').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const despesaId = parseInt(this.dataset.despesaId);
+            const valorTotal = parseFloat(this.dataset.valorTotal);
+            const fornecedor = this.dataset.fornecedor;
+            abrirModalRateioDespesa(despesaId, valorTotal, fornecedor);
+        });
+    });
+});
+
+function abrirModalRateioDespesa(despesaId, valorTotal, fornecedor) {
+    despesaAtual = { id: despesaId, valor: valorTotal };
+    
+    document.getElementById('despesaId').value = despesaId;
+    document.getElementById('despesaFornecedor').textContent = fornecedor;
+    document.getElementById('despesaValor').textContent = 'R$ ' + valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    // Limpar rateios anteriores
+    document.getElementById('containerRateioDespesa').innerHTML = '';
+    linhaCounter = 0;
+    
+    // Adicionar primeira linha
+    adicionarLinhaRateio();
+    
+    document.getElementById('modalRateioDespesa').classList.remove('hidden');
+}
+
+function fecharModalDespesa() {
+    document.getElementById('modalRateioDespesa').classList.add('hidden');
+    despesaAtual = null;
+}
+
+function selecionarMetodo(metodo) {
+    metodoRateio = metodo;
+    
+    // Atualizar botões
+    document.querySelectorAll('.metodo-btn').forEach(btn => {
+        btn.classList.remove('border-blue-500', 'bg-blue-50', 'text-blue-700');
+        btn.classList.add('border-gray-300', 'bg-white', 'text-gray-700');
+    });
+    
+    const btnSelecionado = document.getElementById('btn-' + metodo);
+    btnSelecionado.classList.remove('border-gray-300', 'bg-white', 'text-gray-700');
+    btnSelecionado.classList.add('border-blue-500', 'bg-blue-50', 'text-blue-700');
+    
+    // Se capacidade, calcular automaticamente
+    if (metodo === 'capacidade') {
+        calcularPorCapacidade();
+    }
+    
+    // Atualizar labels dos inputs
+    atualizarLabelsInputs();
+}
+
+function adicionarLinhaRateio() {
+    linhaCounter++;
+    const container = document.getElementById('containerRateioDespesa');
+    
+    const linha = document.createElement('div');
+    linha.className = 'flex gap-2 items-start linha-rateio';
+    linha.id = 'linha-' + linhaCounter;
+    
+    linha.innerHTML = `
+        <div class="flex-1">
+            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" 
+                    onchange="carregarProdutos(${linhaCounter})">
+                <option value="">Selecione o cliente</option>
+                ${CLIENTES.map(c => `<option value="${c.id}">${c.nome}</option>`).join('')}
+            </select>
+        </div>
+        <div class="flex-1">
+            <select id="produto-${linhaCounter}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" disabled>
+                <option value="">Selecione o produto</option>
+            </select>
+        </div>
+        <div class="w-32">
+            <input type="number" step="0.01" min="0" placeholder="${metodoRateio === 'valor' ? 'R$' : '%'}" 
+                   class="input-valor w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                   onchange="calcularTotalDespesa()">
+        </div>
+        <button type="button" onclick="removerLinhaRateio(${linhaCounter})" class="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    
+    container.appendChild(linha);
+}
+
+function carregarProdutos(linhaId) {
+    const linha = document.getElementById('linha-' + linhaId);
+    const selectCliente = linha.querySelector('select');
+    const selectProduto = document.getElementById('produto-' + linhaId);
+    
+    const clienteId = parseInt(selectCliente.value);
+    
+    if (!clienteId) {
+        selectProduto.disabled = true;
+        selectProduto.innerHTML = '<option value="">Selecione o produto</option>';
+        return;
+    }
+    
+    const cliente = CLIENTES.find(c => c.id === clienteId);
+    
+    if (cliente && cliente.produtos && cliente.produtos.length > 0) {
+        selectProduto.disabled = false;
+        selectProduto.innerHTML = '<option value="">Todos os produtos</option>' +
+            cliente.produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    } else {
+        selectProduto.disabled = true;
+        selectProduto.innerHTML = '<option value="">Sem produtos</option>';
+    }
+}
+
+function removerLinhaRateio(linhaId) {
+    const linha = document.getElementById('linha-' + linhaId);
+    if (linha) {
+        linha.remove();
+        calcularTotalDespesa();
+    }
+}
+
+function atualizarLabelsInputs() {
+    const placeholder = metodoRateio === 'valor' ? 'R$' : '%';
+    document.querySelectorAll('.input-valor').forEach(input => {
+        input.placeholder = placeholder;
+    });
+}
+
+function calcularTotalDespesa() {
+    let total = 0;
+    
+    document.querySelectorAll('.input-valor').forEach(input => {
+        const valor = parseFloat(input.value) || 0;
+        if (metodoRateio === 'valor') {
+            // Converter valor para percentual
+            total += (valor / despesaAtual.valor) * 100;
+        } else {
+            total += valor;
+        }
+    });
+    
+    const totalElement = document.getElementById('totalRateioDespesa');
+    totalElement.textContent = total.toFixed(1) + '%';
+    
+    if (Math.abs(total - 100) < 0.1) {
+        totalElement.classList.remove('text-red-600');
+        totalElement.classList.add('text-green-600');
+    } else {
+        totalElement.classList.remove('text-green-600');
+        totalElement.classList.add('text-red-600');
+    }
+}
+
+function calcularPorCapacidade() {
+    // TODO: Implementar cálculo automático baseado em capacidade
+    mostrarMensagem('Cálculo por capacidade será implementado em breve', 'info');
+}
+
+async function salvarRateioDespesa() {
+    const rateios = [];
+    
+    document.querySelectorAll('.linha-rateio').forEach(linha => {
+        const selectCliente = linha.querySelector('select');
+        const selectProduto = linha.querySelectorAll('select')[1];
+        const inputValor = linha.querySelector('.input-valor');
+        
+        const clienteId = parseInt(selectCliente.value);
+        const produtoId = selectProduto.value ? parseInt(selectProduto.value) : null;
+        let valor = parseFloat(inputValor.value) || 0;
+        
+        if (clienteId && valor > 0) {
+            let percentual, valorReal;
+            
+            if (metodoRateio === 'valor') {
+                valorReal = valor;
+                percentual = (valor / despesaAtual.valor) * 100;
+            } else {
+                percentual = valor;
+                valorReal = (despesaAtual.valor * percentual) / 100;
+            }
+            
+            rateios.push({
+                cliente_id: clienteId,
+                produto_id: produtoId,
+                percentual: percentual,
+                valor: valorReal
+            });
+        }
+    });
+    
+    if (rateios.length === 0) {
+        mostrarMensagem('Adicione pelo menos um cliente para o rateio', 'error');
+        return;
+    }
+    
+    const totalPercentual = rateios.reduce((sum, r) => sum + r.percentual, 0);
+    if (Math.abs(totalPercentual - 100) > 0.1) {
+        mostrarMensagem('O total dos percentuais deve ser 100%', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/margem/api/despesa/ratear', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                competencia_id: COMPETENCIA_ID,
+                conta_pagar_id: despesaAtual.id,
+                rateios: rateios
+            })
+        });
+        
+        const result = await response.json();
+        if (response.ok && result.success) {
+            fecharModalDespesa();
+            mostrarMensagem('Despesa rateada com sucesso!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            mostrarMensagem('Erro: ' + (result.message || 'desconhecido'), 'error');
+        }
+    } catch (error) {
+        mostrarMensagem('Erro: ' + error.message, 'error');
+    }
+}
+
+function mostrarMensagem(texto, tipo = 'success') {
+    const m = document.createElement('div');
+    m.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 transition-opacity duration-500 ${
+        tipo === 'success' ? 'bg-green-500 text-white' : 
+        tipo === 'error' ? 'bg-red-500 text-white' : 
+        'bg-blue-500 text-white'
+    }`;
+    m.textContent = texto;
+    document.body.appendChild(m);
+    setTimeout(() => { m.style.opacity = '0'; setTimeout(() => m.remove(), 500); }, 3000);
+}
+</script>
+{% endblock %}
