@@ -10,13 +10,11 @@
             <h1 class="text-3xl font-bold text-gray-800">Categorias de Despesas</h1>
             <p class="text-gray-600 mt-1">Organize as despesas operacionais do call center</p>
         </div>
-        {% if session.role == 'admin' %}
         <a href="{{ url_for('tipos_servicos.novo') }}" 
            class="bg-meetcall-purple hover:bg-meetcall-purple-dark text-white px-6 py-2 rounded-lg transition flex items-center">
             <i class="fas fa-plus mr-2"></i>
             Nova Categoria Principal
         </a>
-        {% endif %}
     </div>
 
     <!-- Lista de Categorias -->
@@ -69,7 +67,6 @@
                     {% endif %}
                     
                     <!-- Ações -->
-                    {% if session.role == 'admin' %}
                     <div class="flex space-x-2" onclick="event.stopPropagation()">
                         <a href="{{ url_for('tipos_servicos.editar', tipo_id=categoria.id) }}" 
                            class="text-blue-600 hover:text-blue-900 p-2" 
@@ -82,7 +79,6 @@
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
-                    {% endif %}
                 </div>
             </div>
             
@@ -108,8 +104,6 @@
                                 <span class="ml-3 text-sm text-gray-500">- {{ subtipo.descricao }}</span>
                                 {% endif %}
                             </div>
-                            
-                            {% if session.role == 'admin' %}
                             <div class="flex space-x-2">
                                 <a href="{{ url_for('tipos_servicos.editar', tipo_id=subtipo.id) }}" 
                                    class="text-blue-600 hover:text-blue-900 p-2" 
@@ -122,7 +116,6 @@
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
-                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
@@ -134,7 +127,6 @@
                     {% endif %}
                     
                     <!-- Botão Adicionar Subtipo -->
-                    {% if session.role == 'admin' %}
                     <div class="mt-4">
                         <a href="{{ url_for('tipos_servicos.novo_subtipo', categoria_id=categoria.id) }}" 
                            class="inline-flex items-center px-4 py-2 bg-white border-2 border-dashed border-meetcall-purple text-meetcall-purple rounded-lg hover:bg-purple-50 transition">
@@ -142,7 +134,6 @@
                             Adicionar Subtipo em {{ categoria.nome }}
                         </a>
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -154,13 +145,11 @@
             <i class="fas fa-folder-open text-gray-300 text-6xl mb-4"></i>
             <h3 class="text-xl font-semibold text-gray-700 mb-2">Nenhuma categoria cadastrada</h3>
             <p class="text-gray-500 mb-6">Comece criando categorias principais como Tecnologia, Recursos Humanos, etc.</p>
-            {% if session.role == 'admin' %}
             <a href="{{ url_for('tipos_servicos.novo') }}" 
                class="inline-flex items-center px-6 py-3 bg-meetcall-purple text-white rounded-lg hover:bg-meetcall-purple-dark transition">
                 <i class="fas fa-plus mr-2"></i>
                 Criar Primeira Categoria
             </a>
-            {% endif %}
         </div>
         {% endif %}
     </div>

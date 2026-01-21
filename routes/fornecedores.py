@@ -18,18 +18,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Por favor, faça login para acessar esta página.', 'warning')
-            return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Você não tem permissão para acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
-        return f(*args, **kwargs)
-    return decorated
-
 @fornecedores_bp.route('/')
 @login_required
 def lista():
@@ -37,7 +25,7 @@ def lista():
     return render_template('fornecedores/lista.html', fornecedores=fornecedores)
 
 @fornecedores_bp.route('/novo', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def novo():
     if request.method == 'POST':
         # Validar CNPJ/CPF
@@ -96,7 +84,7 @@ def novo():
     return render_template('fornecedores/form.html', tipos_servicos=tipos_servicos)
 
 @fornecedores_bp.route('/editar/<int:fornecedor_id>', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def editar(fornecedor_id):
     fornecedor = FornecedorModel.get_by_id(fornecedor_id)
     if not fornecedor:
@@ -158,7 +146,7 @@ def editar(fornecedor_id):
     return render_template('fornecedores/form.html', fornecedor=fornecedor, tipos_servicos=tipos_servicos)
 
 @fornecedores_bp.route('/deletar/<int:fornecedor_id>', methods=['POST'])
-@admin_required
+@login_required
 def deletar(fornecedor_id):
     try:
         FornecedorModel.delete(fornecedor_id)
@@ -167,7 +155,7 @@ def deletar(fornecedor_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @fornecedores_bp.route('/toggle-status/<int:fornecedor_id>', methods=['POST'])
-@admin_required
+@login_required
 def toggle_status(fornecedor_id):
     try:
         FornecedorModel.toggle_status(fornecedor_id)

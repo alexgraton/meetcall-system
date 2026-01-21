@@ -21,15 +21,12 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
 @centro_custos_bp.route('/')
 @login_required
-@admin_required
+@login_required
 def lista():
     filial_id = request.args.get('filial_id', type=int)
     centros = CentroCustoModel.get_all(filial_id=filial_id)
@@ -38,7 +35,7 @@ def lista():
 
 @centro_custos_bp.route('/novo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def novo():
     if request.method == 'POST':
         dados = {
@@ -60,7 +57,7 @@ def novo():
 
 @centro_custos_bp.route('/editar/<int:centro_custo_id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def editar(centro_custo_id):
     centro = CentroCustoModel.get_by_id(centro_custo_id)
     if not centro:
@@ -94,7 +91,7 @@ def editar(centro_custo_id):
 
 @centro_custos_bp.route('/deletar/<int:centro_custo_id>', methods=['POST'])
 @login_required
-@admin_required
+@login_required
 def deletar(centro_custo_id):
     try:
         CentroCustoModel.delete(centro_custo_id)
@@ -104,7 +101,7 @@ def deletar(centro_custo_id):
 
 @centro_custos_bp.route('/toggle-status/<int:centro_custo_id>', methods=['POST'])
 @login_required
-@admin_required
+@login_required
 def toggle_status(centro_custo_id):
     try:
         CentroCustoModel.toggle_status(centro_custo_id)

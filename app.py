@@ -251,14 +251,14 @@ def resetar_senha(user_id):
     return redirect(url_for('cadastros'))
 
 @app.route('/configuracoes')
-@login_required
+@admin_required
 def configuracoes():
     # Buscar todos os usuários
     users = db.get_all_users()
     return render_template('configuracoes.html', users=users)
 
 @app.route('/configuracoes/usuario', methods=['POST'])
-@login_required
+@admin_required
 def manage_user():
     """Cadastrar ou editar usuário"""
     user_id = request.form.get('user_id')
@@ -315,7 +315,7 @@ def change_password():
     return redirect(url_for('configuracoes'))
 
 @app.route('/configuracoes/resetar-senha', methods=['POST'])
-@login_required
+@admin_required
 def reset_user_password():
     """Resetar senha de um usuário (apenas admin)"""
     user_id = request.form.get('user_id')
@@ -330,7 +330,7 @@ def reset_user_password():
     return redirect(url_for('configuracoes'))
 
 @app.route('/configuracoes/backup', methods=['POST'])
-@login_required
+@admin_required
 def backup_database():
     """Gerar backup do banco de dados"""
     import subprocess

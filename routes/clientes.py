@@ -18,18 +18,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if 'user_id' not in session:
-            flash('Por favor, faça login para acessar esta página.', 'warning')
-            return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Você não tem permissão para acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
-        return f(*args, **kwargs)
-    return decorated
-
 @clientes_bp.route('/')
 @login_required
 def lista():
@@ -37,7 +25,7 @@ def lista():
     return render_template('clientes/lista.html', clientes=clientes)
 
 @clientes_bp.route('/novo', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def novo():
     if request.method == 'POST':
         # Validar CNPJ/CPF
@@ -100,7 +88,7 @@ def novo():
     return render_template('clientes/form.html', tipos_servicos=tipos_servicos)
 
 @clientes_bp.route('/editar/<int:cliente_id>', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def editar(cliente_id):
     cliente = ClienteModel.get_by_id(cliente_id)
     if not cliente:
@@ -186,7 +174,7 @@ def editar(cliente_id):
     return render_template('clientes/form.html', cliente=cliente, contatos_json=contatos_json, produtos_json=produtos_json, tipos_servicos=tipos_servicos)
 
 @clientes_bp.route('/deletar/<int:cliente_id>', methods=['POST'])
-@admin_required
+@login_required
 def deletar(cliente_id):
     try:
         ClienteModel.delete(cliente_id)
@@ -195,7 +183,7 @@ def deletar(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @clientes_bp.route('/toggle-status/<int:cliente_id>', methods=['POST'])
-@admin_required
+@login_required
 def toggle_status(cliente_id):
     try:
         ClienteModel.toggle_status(cliente_id)
@@ -204,7 +192,7 @@ def toggle_status(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @clientes_bp.route('/<int:cliente_id>/contato/<int:contato_id>/deletar', methods=['POST'])
-@admin_required
+@login_required
 def deletar_contato(cliente_id, contato_id):
     """Deleta um contato específico de um cliente"""
     try:
@@ -219,7 +207,7 @@ def deletar_contato(cliente_id, contato_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @clientes_bp.route('/<int:cliente_id>/contato/adicionar', methods=['POST'])
-@admin_required
+@login_required
 def adicionar_contato(cliente_id):
     """Adiciona um contato a um cliente existente"""
     try:
@@ -247,7 +235,7 @@ def adicionar_contato(cliente_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @clientes_bp.route('/<int:cliente_id>/produto/<int:produto_id>/deletar', methods=['POST'])
-@admin_required
+@login_required
 def deletar_produto(cliente_id, produto_id):
     """Deleta um produto específico de um cliente"""
     try:
@@ -262,7 +250,7 @@ def deletar_produto(cliente_id, produto_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @clientes_bp.route('/<int:cliente_id>/produto/adicionar', methods=['POST'])
-@admin_required
+@login_required
 def adicionar_produto(cliente_id):
     """Adiciona um produto a um cliente existente"""
     try:

@@ -36,15 +36,12 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
 @contas_pagar_bp.route('/')
 @login_required
-@admin_required
+@login_required
 def lista():
     # Filtros
     fornecedor_id = request.args.get('fornecedor_id', type=int)
@@ -91,7 +88,7 @@ def lista():
 
 @contas_pagar_bp.route('/nova', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def nova():
     if request.method == 'POST':
         dados = {
@@ -139,7 +136,7 @@ def nova():
 
 @contas_pagar_bp.route('/baixar/<int:conta_id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def baixar(conta_id):
     if request.method == 'POST':
         try:
@@ -198,14 +195,14 @@ def baixar(conta_id):
 
 @contas_pagar_bp.route('/cancelar/<int:conta_id>', methods=['POST'])
 @login_required
-@admin_required
+@login_required
 def cancelar(conta_id):
     resultado = ContaPagarModel.cancelar(conta_id)
     return jsonify(resultado)
 
 @contas_pagar_bp.route('/detalhes/<int:conta_id>')
 @login_required
-@admin_required
+@login_required
 def detalhes(conta_id):
     conta = ContaPagarModel.get_by_id(conta_id)
     if not conta:

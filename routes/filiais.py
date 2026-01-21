@@ -9,23 +9,18 @@ from services.cnpj_validator import validar_cnpj, formatar_cnpj, limpar_document
 
 filiais_bp = Blueprint('filiais', __name__, url_prefix='/filiais')
 
-def admin_required(f):
-    """Decorator para rotas que exigem permissão de admin"""
+def login_required(f):
+    """Decorator para verificar se usuário está logado"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
             flash('Por favor, faça login para acessar esta página.', 'warning')
             return redirect(url_for('login'))
-        
-        if session.get('role') != 'admin':
-            flash('Você não tem permissão para acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
-        
         return f(*args, **kwargs)
     return decorated_function
 
 @filiais_bp.route('/')
-@admin_required
+@login_required
 def lista():
     """Lista todas as filiais"""
     try:
@@ -36,7 +31,7 @@ def lista():
         return redirect(url_for('dashboard'))
 
 @filiais_bp.route('/nova', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def nova():
     """Cria uma nova filial"""
     if request.method == 'POST':
@@ -87,7 +82,7 @@ def nova():
     return render_template('filiais/form.html', filial=None)
 
 @filiais_bp.route('/editar/<int:filial_id>', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def editar(filial_id):
     """Edita uma filial existente"""
     if request.method == 'POST':
@@ -147,7 +142,7 @@ def editar(filial_id):
     return render_template('filiais/form.html', filial=filial, filial_id=filial_id)
 
 @filiais_bp.route('/toggle/<int:filial_id>', methods=['POST'])
-@admin_required
+@login_required
 def toggle(filial_id):
     """Ativa ou desativa uma filial"""
     try:
@@ -161,7 +156,7 @@ def toggle(filial_id):
     return redirect(url_for('filiais.lista'))
 
 @filiais_bp.route('/deletar/<int:filial_id>', methods=['POST'])
-@admin_required
+@login_required
 def deletar(filial_id):
     """Deleta (desativa) uma filial"""
     try:

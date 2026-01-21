@@ -28,15 +28,12 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Acesso negado.', 'error')
-            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
 @lancamentos_bp.route('/')
 @login_required
-@admin_required
+@login_required
 def lista():
     tipo = request.args.get('tipo')
     filial_id = request.args.get('filial_id', type=int)
@@ -72,7 +69,7 @@ def lista():
 
 @lancamentos_bp.route('/novo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def novo():
     if request.method == 'POST':
         try:
@@ -120,7 +117,7 @@ def novo():
 
 @lancamentos_bp.route('/<int:lancamento_id>/editar', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def editar(lancamento_id):
     lancamento = LancamentoManualModel.get_by_id(lancamento_id)
     
@@ -173,7 +170,7 @@ def editar(lancamento_id):
 
 @lancamentos_bp.route('/<int:lancamento_id>/excluir', methods=['POST'])
 @login_required
-@admin_required
+@login_required
 def excluir(lancamento_id):
     try:
         LancamentoManualModel.delete(lancamento_id)

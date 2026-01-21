@@ -36,15 +36,12 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
 @contas_receber_bp.route('/')
 @login_required
-@admin_required
+@login_required
 def lista():
     # Filtros
     cliente_id = request.args.get('cliente_id', type=int)
@@ -88,7 +85,7 @@ def lista():
 
 @contas_receber_bp.route('/nova', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def nova():
     if request.method == 'POST':
         try:
@@ -161,7 +158,7 @@ def nova():
 
 @contas_receber_bp.route('/<int:conta_id>/receber', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def receber(conta_id):
     conta = ContaReceberModel.get_by_id(conta_id)
     
@@ -233,7 +230,7 @@ def receber(conta_id):
 
 @contas_receber_bp.route('/<int:conta_id>/cancelar', methods=['POST'])
 @login_required
-@admin_required
+@login_required
 def cancelar(conta_id):
     try:
         ContaReceberModel.cancelar(conta_id)
@@ -245,7 +242,7 @@ def cancelar(conta_id):
 
 @contas_receber_bp.route('/<int:conta_id>')
 @login_required
-@admin_required
+@login_required
 def detalhes(conta_id):
     conta = ContaReceberModel.get_by_id(conta_id)
     
@@ -323,7 +320,7 @@ def api_calcular_juros(conta_id):
 
 @contas_receber_bp.route('/<int:conta_id>/ratear', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def ratear(conta_id):
     """Tela para ratear uma receita entre produtos do cliente"""
     from models.rateio import RateioModel

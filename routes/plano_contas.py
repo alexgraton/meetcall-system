@@ -20,15 +20,12 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Acesso negado. Apenas administradores podem acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
 @plano_contas_bp.route('/')
 @login_required
-@admin_required
+@login_required
 def lista():
     tipo_filtro = request.args.get('tipo')
     nivel_filtro = request.args.get('nivel', type=int)
@@ -45,7 +42,7 @@ def lista():
 
 @plano_contas_bp.route('/novo', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def novo():
     if request.method == 'POST':
         dados = {
@@ -73,7 +70,7 @@ def novo():
 
 @plano_contas_bp.route('/editar/<int:conta_id>', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@login_required
 def editar(conta_id):
     conta = PlanoContaModel.get_by_id(conta_id)
     if not conta:
@@ -95,7 +92,7 @@ def editar(conta_id):
 
 @plano_contas_bp.route('/deletar/<int:conta_id>', methods=['POST'])
 @login_required
-@admin_required
+@login_required
 def deletar(conta_id):
     try:
         result = PlanoContaModel.delete(conta_id)
@@ -105,7 +102,7 @@ def deletar(conta_id):
 
 @plano_contas_bp.route('/toggle-status/<int:conta_id>', methods=['POST'])
 @login_required
-@admin_required
+@login_required
 def toggle_status(conta_id):
     try:
         PlanoContaModel.toggle_status(conta_id)

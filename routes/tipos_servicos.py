@@ -25,9 +25,6 @@ def admin_required(f):
         if 'user_id' not in session:
             flash('Por favor, faça login para acessar esta página.', 'error')
             return redirect(url_for('login'))
-        if session.get('role') != 'admin':
-            flash('Você não tem permissão para acessar esta página.', 'error')
-            return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -50,7 +47,7 @@ def lista():
         return redirect(url_for('dashboard'))
 
 @tipos_servicos_bp.route('/novo', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def novo():
     """Cria um novo tipo de serviço"""
     if request.method == 'POST':
@@ -90,7 +87,7 @@ def novo():
     return render_template('tipos_servicos/form.html', categorias=categorias)
 
 @tipos_servicos_bp.route('/novo-subtipo/<int:categoria_id>', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def novo_subtipo(categoria_id):
     """Cria um novo subtipo dentro de uma categoria"""
     if request.method == 'POST':
@@ -135,7 +132,7 @@ def novo_subtipo(categoria_id):
 
 
 @tipos_servicos_bp.route('/editar/<int:tipo_id>', methods=['GET', 'POST'])
-@admin_required
+@login_required
 def editar(tipo_id):
     """Edita um tipo de serviço existente"""
     tipo = TipoServicoModel.get_by_id(tipo_id)
@@ -180,7 +177,7 @@ def editar(tipo_id):
     return render_template('tipos_servicos/form.html', tipo=tipo, categorias=categorias)
 
 @tipos_servicos_bp.route('/excluir/<int:tipo_id>')
-@admin_required
+@login_required
 def excluir(tipo_id):
     """Exclui um tipo de serviço (GET para simplificar)"""
     try:
@@ -208,7 +205,7 @@ def excluir(tipo_id):
         return redirect(url_for('tipos_servicos.lista'))
 
 @tipos_servicos_bp.route('/deletar/<int:tipo_id>', methods=['POST'])
-@admin_required
+@login_required
 def deletar(tipo_id):
     """Exclui logicamente um tipo de serviço"""
     try:
@@ -232,7 +229,7 @@ def deletar(tipo_id):
         }), 500
 
 @tipos_servicos_bp.route('/toggle-status/<int:tipo_id>', methods=['POST'])
-@admin_required
+@login_required
 def toggle_status(tipo_id):
     """Alterna o status ativo/inativo de um tipo de serviço"""
     try:

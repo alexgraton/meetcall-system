@@ -92,3 +92,13 @@ secrets.py
 # Arquivos de configuração locais específicos
 .env.local
 .env.production
+
+# Uploads (manter estrutura de pastas apenas)
+uploads/**/*
+!uploads/**/.gitkeep
+static/uploads/**/*
+!static/uploads/**/.gitkeep
+
+# Arquivos Excel temporários
+~$*.xlsx
+~$*.xls

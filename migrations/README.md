@@ -1,43 +1,13 @@
-# 🗄️ Migrations do Sistema MeetCall
+# Migrations - MeetCall System
 
-## Migration Consolidada
+## Arquivo Único de Migração
 
-Este diretório contém a **migration inicial consolidada** do sistema.
+Este diretório contém a migração consolidada com todo o schema do banco de dados.
 
-### 📄 Arquivo Principal
+### Arquivo
+- `001_schema_completo.sql` - Schema completo do sistema (22 tabelas + 2 views)
 
-**`000_initial_schema.sql`** - Schema completo do banco de dados
-
-### 🎯 O que esta migration cria:
-
-| # | Tabela | Descrição |
-|---|--------|-----------|
-| 1 | `users` | Usuários do sistema (admin/user) |
-| 2 | `filiais` | Filiais da empresa |
-| 3 | `tipos_servicos` | Tipos de serviços/despesas/receitas |
-| 4 | `plano_contas` | Plano de contas contábil |
-| 5 | `centro_custos` | Centros de custos para rateio |
-| 6 | `fornecedores` | Cadastro de fornecedores |
-| 7 | `fornecedor_contatos` | Contatos dos fornecedores |
-| 8 | `clientes` | Cadastro de clientes |
-| 9 | `cliente_contatos` | Contatos dos clientes |
-| 10 | `cliente_produtos` | Produtos/serviços contratados |
-| 11 | `contas_bancarias` | Contas bancárias da empresa |
-| 12 | `contas_pagar` | Contas a pagar |
-| 13 | `contas_receber` | Contas a receber |
-| 14 | `lancamentos_manuais` | Lançamentos manuais |
-| 15 | `conciliacoes_bancarias` | Histórico de conciliações |
-| 16 | `transacoes_extrato` | Transações de extratos importados |
-| 17 | `rateio_contas` | Rateio por centro de custo |
-| 18 | `auditoria` | Log de auditoria |
-
-**Total: 18 tabelas**
-
----
-
-## 🚀 Como Usar
-
-### 1️⃣ Executar a Migration
+### Como Executar
 
 Na raiz do projeto:
 
@@ -45,9 +15,42 @@ Na raiz do projeto:
 python run_migrations.py
 ```
 
-Isso irá:
-- ✅ Criar todas as 18 tabelas
-- ✅ Configurar todas as foreign keys
+Ou execute diretamente o SQL no MySQL:
+
+```bash
+mysql -u usuario -p meetcall_system < migrations/001_schema_completo.sql
+```
+
+### Estrutura Criada
+
+**22 Tabelas:**
+1. users
+2. filiais
+3. tipos_servicos
+4. plano_contas
+5. centro_custos
+6. fornecedores
+7. fornecedor_contatos
+8. clientes
+9. cliente_contatos
+10. cliente_produtos
+11. contas_bancarias
+12. contas_pagar
+13. contas_receber
+14. lancamentos_manuais
+15. conciliacoes_bancarias
+16. transacoes_extrato
+17. rateio_contas
+18. capacity_historico
+19. margem_competencias
+20. margem_rateio_receitas
+21. margem_rateio_despesas
+22. auditoria
+
+**2 Views:**
+- vw_capacity_atual
+- vw_margem_resumo
+
 - ✅ Criar todos os índices
 - ✅ Preparar o banco para uso
 
