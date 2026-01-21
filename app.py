@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 from config import Config
 from database import db
+from utils.auditoria import registrar_login, registrar_logout
 
 # Importar blueprints
 from routes.filiais import filiais_bp
@@ -22,6 +23,7 @@ from routes.relatorios import relatorios_bp
 from routes.conciliacao import conciliacao_bp
 from routes.capacity import capacity_bp
 from routes.margem import margem_bp
+from routes.auditoria import auditoria_bp
 
 # Inicializar Flask com configurações
 config = Config()
@@ -66,6 +68,7 @@ app.register_blueprint(relatorios_bp)
 app.register_blueprint(conciliacao_bp)
 app.register_blueprint(capacity_bp)
 app.register_blueprint(margem_bp)
+app.register_blueprint(auditoria_bp)
 
 # Decorator para rotas protegidas
 def login_required(f):
@@ -115,9 +118,15 @@ def login():
                 session['user_id'] = user['id']
                 session['name'] = user['name']
                 session['role'] = user['role']
+                
+                # Registrar login bem-sucedido na auditoria
+                registrar_login(user['id'], user['email'], sucesso=True)
+                
                 flash(f'Bem-vindo(a), {user["name"]}!', 'success')
                 return redirect(url_for('dashboard'))
             else:
+                # Registrar tentativa de login falha
+                registrar_login(None, email, sucesso=False)
                 flash('Email ou senha inválidos.', 'error')
                 
         except Exception as e:
@@ -380,6 +389,13 @@ def perfil():
 @login_required
 def logout():
     name = session.get('name', 'Usuário')
+    user_id = session.get('user_id')
+    email = session.get('user')
+    
+    # Registrar logout na auditoria antes de limpar a sessão
+    if user_id and email:
+        registrar_logout(user_id, email)
+    
     session.clear()
     flash(f'Até logo, {name}!', 'info')
     return redirect(url_for('login'))

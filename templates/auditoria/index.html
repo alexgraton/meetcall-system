@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}Auditoria do Sistema - Meet Call{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <!-- Cabeçalho -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            <i class="fas fa-shield-alt text-meetcall-purple mr-2"></i>
+            Auditoria do Sistema
+        </h1>
+        <p class="text-gray-600">Visualize todos os logs e ações realizadas no sistema</p>
+    </div>
+
+    <!-- Estatísticas Resumidas -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Total de Logs</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ total }}</p>
+                </div>
+                <div class="bg-blue-100 rounded-full p-3">
+                    <i class="fas fa-database text-blue-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Logins Hoje</p>
+                    <p class="text-2xl font-bold text-gray-800">
+                        {{ estatisticas.acoes | selectattr('acao', 'equalto', 'login') | list | length }}
+                    </p>
+                </div>
+                <div class="bg-green-100 rounded-full p-3">
+                    <i class="fas fa-sign-in-alt text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Modificações</p>
+                    <p class="text-2xl font-bold text-gray-800">
+                        {{ (estatisticas.acoes | selectattr('acao', 'in', ['insert', 'update', 'delete']) | list | sum(attribute='total')) or 0 }}
+                    </p>
+                </div>
+                <div class="bg-orange-100 rounded-full p-3">
+                    <i class="fas fa-edit text-orange-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-500 text-sm">Usuários Ativos</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ estatisticas.usuarios_ativos | length }}</p>
+                </div>
+                <div class="bg-purple-100 rounded-full p-3">
+                    <i class="fas fa-users text-purple-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Tabela</label>
+                <select name="tabela" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="">Todas</option>
+                    <option value="users" {% if filtros.tabela == 'users' %}selected{% endif %}>Usuários</option>
+                    <option value="fornecedores" {% if filtros.tabela == 'fornecedores' %}selected{% endif %}>Fornecedores</option>
+                    <option value="clientes" {% if filtros.tabela == 'clientes' %}selected{% endif %}>Clientes</option>
+                    <option value="contas_pagar" {% if filtros.tabela == 'contas_pagar' %}selected{% endif %}>Contas a Pagar</option>
+                    <option value="contas_receber" {% if filtros.tabela == 'contas_receber' %}selected{% endif %}>Contas a Receber</option>
+                    <option value="lancamentos_manuais" {% if filtros.tabela == 'lancamentos_manuais' %}selected{% endif %}>Lançamentos</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Ação</label>
+                <select name="acao" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                    <option value="">Todas</option>
+                    <option value="login" {% if filtros.acao == 'login' %}selected{% endif %}>Login</option>
+                    <option value="logout" {% if filtros.acao == 'logout' %}selected{% endif %}>Logout</option>
+                    <option value="insert" {% if filtros.acao == 'insert' %}selected{% endif %}>Inserção</option>
+                    <option value="update" {% if filtros.acao == 'update' %}selected{% endif %}>Atualização</option>
+                    <option value="delete" {% if filtros.acao == 'delete' %}selected{% endif %}>Exclusão</option>
+                    <option value="view" {% if filtros.acao == 'view' %}selected{% endif %}>Visualização</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+                <input type="date" name="data_inicio" value="{{ filtros.data_inicio or '' }}" 
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+                <input type="date" name="data_fim" value="{{ filtros.data_fim or '' }}" 
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            </div>
+
+            <div class="flex items-end gap-2">
+                <button type="submit" class="flex-1 bg-meetcall-purple hover:bg-meetcall-purple-dark text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-search mr-2"></i>Filtrar
+                </button>
+                <a href="{{ url_for('auditoria.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabela de Logs -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data/Hora</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tabela</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registro</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for log in logs %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ log.data_hora.strftime('%d/%m/%Y %H:%M:%S') }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ log.usuario_nome or 'Sistema' }}</div>
+                            <div class="text-sm text-gray-500">{{ log.usuario_email or '-' }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if log.acao == 'login' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-sign-in-alt mr-1"></i> Login
+                                </span>
+                            {% elif log.acao == 'logout' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                    <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                                </span>
+                            {% elif log.acao == 'insert' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    <i class="fas fa-plus mr-1"></i> Inserção
+                                </span>
+                            {% elif log.acao == 'update' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-edit mr-1"></i> Atualização
+                                </span>
+                            {% elif log.acao == 'delete' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                    <i class="fas fa-trash mr-1"></i> Exclusão
+                                </span>
+                            {% elif log.acao == 'view' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                    <i class="fas fa-eye mr-1"></i> Visualização
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ log.tabela }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            #{{ log.registro_id }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ log.ip_address or '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button onclick="verDetalhes({{ log.id }})" class="text-meetcall-purple hover:text-meetcall-purple-dark">
+                                <i class="fas fa-eye mr-1"></i>Detalhes
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
+                            Nenhum log encontrado com os filtros aplicados.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação -->
+        {% if total_pages > 1 %}
+        <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+            <div class="flex-1 flex justify-between sm:hidden">
+                {% if page > 1 %}
+                <a href="?page={{ page - 1 }}{% for key, value in filtros.items() %}&{{ key }}={{ value }}{% endfor %}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Anterior
+                </a>
+                {% endif %}
+                {% if page < total_pages %}
+                <a href="?page={{ page + 1 }}{% for key, value in filtros.items() %}&{{ key }}={{ value }}{% endfor %}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Próxima
+                </a>
+                {% endif %}
+            </div>
+            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Mostrando <span class="font-medium">{{ ((page - 1) * per_page) + 1 }}</span> 
+                        até <span class="font-medium">{{ [page * per_page, total] | min }}</span> 
+                        de <span class="font-medium">{{ total }}</span> resultados
+                    </p>
+                </div>
+                <div>
+                    <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        {% if page > 1 %}
+                        <a href="?page={{ page - 1 }}{% for key, value in filtros.items() %}&{{ key }}={{ value }}{% endfor %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                        {% endif %}
+                        
+                        {% for p in range(1, total_pages + 1) %}
+                            {% if p == page %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-meetcall-purple bg-meetcall-purple text-sm font-medium text-white">
+                                {{ p }}
+                            </span>
+                            {% elif p >= page - 2 and p <= page + 2 %}
+                            <a href="?page={{ p }}{% for key, value in filtros.items() %}&{{ key }}={{ value }}{% endfor %}" 
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ p }}
+                            </a>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page < total_pages %}
+                        <a href="?page={{ page + 1 }}{% for key, value in filtros.items() %}&{{ key }}={{ value }}{% endfor %}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de Detalhes -->
+<div id="modalDetalhes" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900">Detalhes do Log</h3>
+            <button onclick="fecharModal()" class="text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div id="conteudoDetalhes" class="mt-2">
+            <!-- Conteúdo será inserido via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+function verDetalhes(logId) {
+    // Buscar detalhes do log
+    const log = {{ logs | tojson | safe }}.find(l => l.id === logId);
+    
+    let html = '<div class="space-y-4">';
+    
+    // Dados Novos
+    if (log.dados_novos) {
+        html += '<div>';
+        html += '<h4 class="font-semibold text-gray-700 mb-2">Dados Novos:</h4>';
+        html += '<pre class="bg-gray-50 p-3 rounded text-sm overflow-x-auto">' + JSON.stringify(log.dados_novos, null, 2) + '</pre>';
+        html += '</div>';
+    }
+    
+    // Dados Anteriores
+    if (log.dados_anteriores) {
+        html += '<div>';
+        html += '<h4 class="font-semibold text-gray-700 mb-2">Dados Anteriores:</h4>';
+        html += '<pre class="bg-gray-50 p-3 rounded text-sm overflow-x-auto">' + JSON.stringify(log.dados_anteriores, null, 2) + '</pre>';
+        html += '</div>';
+    }
+    
+    if (!log.dados_novos && !log.dados_anteriores) {
+        html += '<p class="text-gray-500">Sem dados adicionais disponíveis.</p>';
+    }
+    
+    html += '</div>';
+    
+    document.getElementById('conteudoDetalhes').innerHTML = html;
+    document.getElementById('modalDetalhes').classList.remove('hidden');
+}
+
+function fecharModal() {
+    document.getElementById('modalDetalhes').classList.add('hidden');
+}
+
+// Fechar modal ao clicar fora
+document.getElementById('modalDetalhes').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fecharModal();
+    }
+});
+</script>
+{% endblock %}

@@ -150,6 +150,9 @@
                         </div>
                         
                         {% if session.role == 'admin' %}
+                        <a href="{{ url_for('auditoria.index') }}" class="{% if request.endpoint and 'auditoria' in request.endpoint %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition flex items-center">
+                            <i class="fas fa-shield-alt mr-2"></i>Auditoria
+                        </a>
                         <a href="{{ url_for('configuracoes') }}" class="{% if request.endpoint == 'configuracoes' %}bg-meetcall-purple-dark{% endif %} text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition flex items-center">
                             <i class="fas fa-cog mr-2"></i>Configurações
                         </a>
