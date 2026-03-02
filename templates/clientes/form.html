@@ -840,6 +840,11 @@ function validarDocumento() {
         successMsg.classList.add('opacity-100');
         input.classList.add('border-green-500');
         
+        // Consultar CNPJ automaticamente se for pessoa jurídica
+        if (tipoPessoa === 'juridica') {
+            consultarCNPJ(valor);
+        }
+        
         // Ocultar automaticamente após 2 segundos
         setTimeout(() => {
             successMsg.classList.remove('opacity-100');
@@ -851,6 +856,128 @@ function validarDocumento() {
     }
     
     return true;
+}
+
+// ==================== CONSULTA AUTOMÁTICA DE CNPJ ====================
+function consultarCNPJ(cnpj) {
+    const cnpjLimpo = cnpj.replace(/\D/g, '');
+    
+    if (cnpjLimpo.length !== 14) {
+        return;
+    }
+    
+    // Mostrar indicador de carregamento
+    const cnpjInput = document.getElementById('cnpj');
+    const errorMsg = document.getElementById('cnpj-error');
+    const successMsg = document.getElementById('cnpj-success');
+    
+    // Atualizar mensagem de sucesso para mostrar "Consultando..."
+    successMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando CNPJ...';
+    successMsg.classList.remove('opacity-0');
+    successMsg.classList.add('opacity-100');
+    
+    // Fazer requisição para o backend
+    fetch(`/clientes/buscar-cnpj/${cnpjLimpo}`)
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw err;
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.data) {
+                // Preencher campos do formulário
+                preencherFormularioCNPJ(data.data);
+                
+                // Mostrar mensagem de sucesso
+                successMsg.innerHTML = `<i class="fas fa-check-circle"></i> Dados preenchidos automaticamente (${data.api_utilizada})`;
+                setTimeout(() => {
+                    successMsg.classList.remove('opacity-100');
+                    successMsg.classList.add('opacity-0');
+                }, 5000);
+            } else {
+                throw data;
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao consultar CNPJ:', error);
+            
+            // Mostrar mensagem de erro apropriada
+            let mensagem = 'Erro ao consultar CNPJ';
+            
+            if (error.error_code === 'not_found') {
+                mensagem = 'CNPJ não encontrado';
+            } else if (error.error_code === 'rate_limit') {
+                mensagem = 'Limite de consultas atingido. Tente novamente mais tarde.';
+            } else if (error.message) {
+                mensagem = error.message;
+            }
+            
+            // Ocultar mensagem de carregamento e mostrar erro
+            successMsg.classList.remove('opacity-100');
+            successMsg.classList.add('opacity-0');
+            
+            // Mostrar mensagem temporária
+            const originalBorder = cnpjInput.className;
+            errorMsg.textContent = mensagem;
+            cnpjInput.classList.add('border-yellow-500');
+            
+            setTimeout(() => {
+                errorMsg.textContent = '';
+                cnpjInput.className = originalBorder;
+            }, 5000);
+        });
+}
+
+function preencherFormularioCNPJ(dados) {
+    // Preencher campos somente se estiverem vazios (permite edição manual)
+    const campos = [
+        { id: 'razao_social', valor: dados.razao_social },
+        { id: 'nome', valor: dados.nome },
+        { id: 'email', valor: dados.email },
+        { id: 'telefone', valor: formatarTelefone(dados.telefone) },
+        { id: 'cep', valor: dados.cep },
+        { id: 'endereco', valor: dados.rua },
+        { id: 'numero', valor: dados.numero },
+        { id: 'complemento', valor: dados.complemento },
+        { id: 'bairro', valor: dados.bairro },
+        { id: 'cidade', valor: dados.cidade },
+        { id: 'estado', valor: dados.estado }
+    ];
+    
+    campos.forEach(campo => {
+        const elemento = document.getElementById(campo.id);
+        if (elemento && campo.valor) {
+            // Preencher apenas se o campo estiver vazio
+            if (!elemento.value || elemento.value.trim() === '') {
+                elemento.value = campo.valor;
+                
+                // Adicionar animação visual
+                elemento.classList.add('bg-green-50');
+                setTimeout(() => {
+                    elemento.classList.remove('bg-green-50');
+                }, 2000);
+            }
+        }
+    });
+}
+
+function formatarTelefone(telefone) {
+    if (!telefone) return '';
+    
+    // Remover caracteres não numéricos
+    const numeros = telefone.replace(/\D/g, '');
+    
+    // Formatar conforme o tamanho
+    if (numeros.length === 11) {
+        return numeros.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    } else if (numeros.length === 10) {
+        return numeros.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    }
+    
+    return telefone;
 }
 
 // ==================== MÁSCARAS ====================

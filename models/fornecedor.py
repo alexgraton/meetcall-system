@@ -60,10 +60,16 @@ class FornecedorModel:
         db = DatabaseManager()
         with db.get_connection() as conn:
             cursor = conn.cursor(dictionary=True)
-            if include_inactive:
-                cursor.execute("SELECT * FROM fornecedores ORDER BY nome")
-            else:
-                cursor.execute("SELECT * FROM fornecedores WHERE is_active = 1 ORDER BY nome")
+            query = """
+                SELECT f.*, ts.nome as tipo_servico_nome
+                FROM fornecedores f
+                LEFT JOIN tipos_servicos ts ON f.tipo_servico_id = ts.id
+                WHERE 1=1
+            """
+            if not include_inactive:
+                query += " AND f.is_active = 1"
+            query += " ORDER BY f.nome"
+            cursor.execute(query)
             return cursor.fetchall()
 
     @staticmethod

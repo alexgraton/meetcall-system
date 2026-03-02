@@ -116,6 +116,7 @@ class ContaPagarModel:
     @staticmethod
     def get_all(fornecedor_id: Optional[int] = None, 
                 filial_id: Optional[int] = None,
+                centro_custo_id: Optional[int] = None,
                 status: Optional[str] = None,
                 data_inicio: Optional[date] = None,
                 data_fim: Optional[date] = None) -> List[Dict]:
@@ -146,6 +147,10 @@ class ContaPagarModel:
             if fornecedor_id:
                 query += " AND cp.fornecedor_id = %s"
                 params.append(fornecedor_id)
+            
+            if centro_custo_id:
+                query += " AND cp.centro_custo_id = %s"
+                params.append(centro_custo_id)
             
             if filial_id:
                 query += " AND cp.filial_id = %s"
@@ -313,6 +318,96 @@ class ContaPagarModel:
             return {'success': False, 'message': str(e)}
 
     @staticmethod
+    def update(conta_id: int, dados: Dict) -> Dict:
+        """Atualiza uma conta a pagar existente"""
+        try:
+            db = DatabaseManager()
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Verificar se a conta existe e não está paga
+                cursor.execute("SELECT status FROM contas_pagar WHERE id = %s", (conta_id,))
+                conta = cursor.fetchone()
+                
+                if not conta:
+                    return {'success': False, 'message': 'Conta não encontrada'}
+                
+                if conta[0] == 'pago':
+                    return {'success': False, 'message': 'Não é possível editar uma conta já paga'}
+                
+                query = """
+                    UPDATE contas_pagar
+                    SET fornecedor_id = %s,
+                        tipo_servico_id = %s,
+                        centro_custo_id = %s,
+                        conta_contabil_id = %s,
+                        filial_id = %s,
+                        descricao = %s,
+                        numero_documento = %s,
+                        observacoes = %s,
+                        valor_total = %s,
+                        data_emissao = %s,
+                        data_vencimento = %s,
+                        referencia = %s,
+                        percentual_juros = %s,
+                        percentual_multa = %s,
+                        updated_at = NOW()
+                    WHERE id = %s
+                """
+                
+                cursor.execute(query, (
+                    dados['fornecedor_id'],
+                    dados.get('tipo_servico_id'),
+                    dados.get('centro_custo_id'),
+                    dados.get('conta_contabil_id'),
+                    dados.get('filial_id'),
+                    dados['descricao'],
+                    dados.get('numero_documento'),
+                    dados.get('observacoes'),
+                    dados['valor_total'],
+                    dados['data_emissao'],
+                    dados['data_vencimento'],
+                    dados.get('referencia'),
+                    dados.get('percentual_juros', 0),
+                    dados.get('percentual_multa', 0),
+                    conta_id
+                ))
+                conn.commit()
+                
+                return {'success': True, 'message': 'Conta atualizada com sucesso'}
+        except Exception as e:
+            return {'success': False, 'message': str(e)}
+
+    @staticmethod
+    def delete(conta_id: int) -> Dict:
+        """Exclui uma conta a pagar (soft delete)"""
+        try:
+            db = DatabaseManager()
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Verificar se a conta existe e não está paga
+                cursor.execute("SELECT status FROM contas_pagar WHERE id = %s", (conta_id,))
+                conta = cursor.fetchone()
+                
+                if not conta:
+                    return {'success': False, 'message': 'Conta não encontrada'}
+                
+                if conta[0] == 'pago':
+                    return {'success': False, 'message': 'Não é possível excluir uma conta já paga. Use o estorno.'}
+                
+                # Soft delete - marca como cancelado
+                cursor.execute(
+                    "UPDATE contas_pagar SET status = 'cancelado', updated_at = NOW() WHERE id = %s",
+                    (conta_id,)
+                )
+                conn.commit()
+                
+                return {'success': True, 'message': 'Conta excluída com sucesso'}
+        except Exception as e:
+            return {'success': False, 'message': str(e)}
+
+    @staticmethod
     def get_totalizadores(filtros: Dict = None) -> Dict:
         """Retorna totalizadores de contas a pagar"""
         db = DatabaseManager()
@@ -326,6 +421,10 @@ class ContaPagarModel:
                 if filtros.get('fornecedor_id'):
                     query_base += " AND fornecedor_id = %s"
                     params.append(filtros['fornecedor_id'])
+                
+                if filtros.get('centro_custo_id'):
+                    query_base += " AND centro_custo_id = %s"
+                    params.append(filtros['centro_custo_id'])
                 
                 if filtros.get('filial_id'):
                     query_base += " AND filial_id = %s"
@@ -352,3 +451,82 @@ class ContaPagarModel:
                 'total_pago': float(total_pago),
                 'total_geral': float(total_pendente + total_vencido + total_pago)
             }
+
+    @staticmethod
+    def get_baixas(data_inicio=None, data_fim=None, fornecedor_id=None):
+        """Busca todas as baixas (pagamentos) realizadas"""
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            query = """
+                SELECT 
+                    cp.*,
+                    f.razao_social as fornecedor_nome,
+                    f.nome as fornecedor_fantasia,
+                    cb.descricao as conta_bancaria_nome,
+                    ts.nome as tipo_servico_nome,
+                    fil.nome as filial_nome
+                FROM contas_pagar cp
+                LEFT JOIN fornecedores f ON cp.fornecedor_id = f.id
+                LEFT JOIN contas_bancarias cb ON cp.conta_bancaria_id = cb.id
+                LEFT JOIN tipos_servicos ts ON cp.tipo_servico_id = ts.id
+                LEFT JOIN filiais fil ON cp.filial_id = fil.id
+                WHERE cp.status = 'pago'
+            """
+            
+            params = []
+            if data_inicio:
+                query += " AND cp.data_pagamento >= %s"
+                params.append(data_inicio)
+            if data_fim:
+                query += " AND cp.data_pagamento <= %s"
+                params.append(data_fim)
+            if fornecedor_id:
+                query += " AND cp.fornecedor_id = %s"
+                params.append(fornecedor_id)
+            
+            query += " ORDER BY cp.data_pagamento DESC, cp.id DESC"
+            
+            cursor.execute(query, tuple(params))
+            return cursor.fetchall()
+
+    @staticmethod
+    def estornar_pagamento(conta_id: int, motivo: str) -> Dict:
+        """Estorna um pagamento realizado"""
+        try:
+            db = DatabaseManager()
+            with db.get_connection() as conn:
+                cursor = conn.cursor(dictionary=True)
+                
+                # Verificar se a conta existe e está paga
+                cursor.execute("SELECT status, valor_pago FROM contas_pagar WHERE id = %s", (conta_id,))
+                conta = cursor.fetchone()
+                
+                if not conta:
+                    return {'success': False, 'message': 'Conta não encontrada'}
+                
+                if conta['status'] != 'pago':
+                    return {'success': False, 'message': 'Esta conta não está paga. Apenas contas pagas podem ser estornadas.'}
+                
+                # Estornar - voltar ao status pendente e limpar dados de pagamento
+                query = """
+                    UPDATE contas_pagar
+                    SET status = 'pendente',
+                        conta_bancaria_id = NULL,
+                        data_pagamento = NULL,
+                        valor_pago = NULL,
+                        valor_juros = NULL,
+                        valor_multa = NULL,
+                        valor_desconto = NULL,
+                        observacoes = CONCAT(COALESCE(observacoes, ''), '\n[ESTORNO] ', %s, ' - ', NOW())
+                    WHERE id = %s
+                """
+                
+                cursor.execute(query, (motivo, conta_id))
+                conn.commit()
+                
+                return {'success': True, 'message': 'Pagamento estornado com sucesso'}
+                
+        except Exception as e:
+            return {'success': False, 'message': f'Erro ao estornar pagamento: {str(e)}'}

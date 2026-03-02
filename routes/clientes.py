@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from functools import wraps
 from models.cliente import ClienteModel
 from services.cnpj_validator import validar_cnpj, validar_cpf, limpar_documento
+from services.cnpj_consulta import buscar_cnpj
 from utils.auditoria import auditar_agora
 import json
 
@@ -288,3 +289,67 @@ def adicionar_produto(cliente_id):
             return jsonify({'success': True, 'message': 'Produto adicionado', 'id': produto_id})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@clientes_bp.route('/buscar-cnpj/<cnpj>', methods=['GET'])
+@login_required
+def buscar_cnpj_endpoint(cnpj):
+    """
+    Endpoint para buscar dados de CNPJ em APIs públicas
+    Implementa sistema de fallback entre 3 APIs
+    """
+    try:
+        resultado = buscar_cnpj(cnpj)
+        
+        if resultado['success']:
+            return jsonify(resultado), 200
+        
+        # Retornar status HTTP apropriado conforme o erro
+        error_code = resultado.get('error_code', 'error')
+        
+        if error_code == 'invalid_cnpj':
+            return jsonify(resultado), 400
+        elif error_code == 'not_found':
+            return jsonify(resultado), 404
+        elif error_code == 'rate_limit':
+            return jsonify(resultado), 429
+        else:
+            return jsonify(resultado), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erro ao processar requisição: {str(e)}',
+            'error_code': 'server_error'
+        }), 500
+
+@clientes_bp.route('/exportar/pdf')
+@login_required
+def exportar_pdf():
+    from services.exportacao import ExportacaoService
+    from flask import send_file
+    
+    clientes = ClienteModel.get_all()
+    pdf_buffer = ExportacaoService.exportar_clientes_pdf(clientes)
+    
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'clientes.pdf'
+    )
+
+@clientes_bp.route('/exportar/excel')
+@login_required
+def exportar_excel():
+    from services.exportacao import ExportacaoService
+    from flask import send_file
+    
+    clientes = ClienteModel.get_all()
+    excel_buffer = ExportacaoService.exportar_clientes_excel(clientes)
+    
+    return send_file(
+        excel_buffer,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=f'clientes.xlsx'
+    )

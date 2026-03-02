@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Recebimentos Realizados - MeetCall System{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-900">Recebimentos Realizados</h1>
+        <a href="{{ url_for('contas_receber.lista') }}" class="text-gray-600 hover:text-gray-800">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar para Contas a Receber
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+        <form method="GET" class="grid grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Data Início</label>
+                <input type="date" name="data_inicio" value="{{ filtros.data_inicio or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Data Fim</label>
+                <input type="date" name="data_fim" value="{{ filtros.data_fim or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                <select name="cliente_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-meetcall-purple">
+                    <option value="">Todos</option>
+                    {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if filtros.cliente_id == cliente.id %}selected{% endif %}>
+                            {{ cliente.razao_social or cliente.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="flex items-end">
+                <button type="submit" class="bg-meetcall-purple text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition duration-300 w-full">
+                    <i class="fas fa-filter mr-2"></i>Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Total -->
+    <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle text-green-500 text-2xl mr-3"></i>
+            <div>
+                <p class="text-sm text-gray-600">Total Recebido</p>
+                <p class="text-2xl font-bold text-green-700">R$ {{ total_recebido|moeda }}</p>
+                <p class="text-xs text-gray-500">{{ baixas|length }} recebimento(s) realizado(s)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Baixas -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Data Recebimento</th>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Cliente</th>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Descrição</th>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Vencimento</th>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Valores</th>
+                    <th class="px-4 py-2 text-left text-xs font-semibold text-gray-700 uppercase">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for baixa in baixas %}
+                <tr class="border-t hover:bg-gray-50">
+                    <td class="px-4 py-2">
+                        <span class="font-semibold text-green-700">{{ baixa.data_recebimento.strftime('%d/%m/%Y') }}</span>
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="font-semibold">{{ baixa.cliente_fantasia or baixa.cliente_nome }}</div>
+                        {% if baixa.filial_nome %}
+                            <span class="text-xs text-gray-500">{{ baixa.filial_nome }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <div>{{ baixa.descricao }}</div>
+                        {% if baixa.numero_documento %}
+                            <span class="text-xs text-gray-500">Doc: {{ baixa.numero_documento }}</span>
+                        {% endif %}
+                        {% if baixa.tipo_servico_nome %}
+                            <br><span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs">
+                                {{ baixa.tipo_servico_nome }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <span class="text-sm">{{ baixa.data_vencimento.strftime('%d/%m/%Y') }}</span>
+                        {% if baixa.data_recebimento > baixa.data_vencimento %}
+                            <br><span class="text-xs text-red-600">
+                                Atraso: {{ (baixa.data_recebimento - baixa.data_vencimento).days }} dia(s)
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2">
+                        <div class="text-sm">
+                            <div><strong>Valor Original:</strong> R$ {{ baixa.valor_total|moeda }}</div>
+                            {% if baixa.valor_juros and baixa.valor_juros > 0 %}
+                                <div class="text-orange-600">Juros: R$ {{ baixa.valor_juros|moeda }}</div>
+                            {% endif %}
+                            {% if baixa.valor_multa and baixa.valor_multa > 0 %}
+                                <div class="text-orange-600">Multa: R$ {{ baixa.valor_multa|moeda }}</div>
+                            {% endif %}
+                            {% if baixa.valor_desconto and baixa.valor_desconto > 0 %}
+                                <div class="text-green-600">Desconto: R$ {{ baixa.valor_desconto|moeda }}</div>
+                            {% endif %}
+                            <div class="font-bold text-green-700 mt-1">Total Recebido: R$ {{ baixa.valor_pago|moeda }}</div>
+                        </div>
+                    </td>
+                    <td class="px-4 py-2">
+                        <button onclick="abrirModalEstorno({{ baixa.id }}, '{{ baixa.descricao }}', '{{ baixa.cliente_nome }}')"
+                                class="text-red-600 hover:text-red-800" title="Estornar Recebimento">
+                            <i class="fas fa-undo"></i> Estornar
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                
+                {% if not baixas %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-2"></i>
+                        <p>Nenhum recebimento encontrado</p>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal de Estorno -->
+<div id="modalEstorno" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="bg-red-600 text-white px-6 py-4 rounded-t-lg">
+            <h3 class="text-xl font-bold">
+                <i class="fas fa-exclamation-triangle mr-2"></i>Estornar Recebimento
+            </h3>
+        </div>
+        
+        <form method="POST" id="formEstorno">
+            <div class="p-6">
+                <div class="mb-4">
+                    <p class="text-gray-700 mb-2">
+                        Você está prestes a estornar o recebimento:
+                    </p>
+                    <div class="bg-gray-100 p-3 rounded">
+                        <p class="font-semibold" id="estornoDescricao"></p>
+                        <p class="text-sm text-gray-600" id="estornoCliente"></p>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Motivo do Estorno <span class="text-red-500">*</span>
+                    </label>
+                    <textarea name="motivo" required rows="3" placeholder="Descreva o motivo do estorno..."
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"></textarea>
+                </div>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Esta ação irá reverter o recebimento e a conta voltará ao status "Pendente".
+                    </p>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 px-6 py-4 rounded-b-lg flex justify-end space-x-3">
+                <button type="button" onclick="fecharModalEstorno()" 
+                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition duration-300">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-300">
+                    <i class="fas fa-undo mr-2"></i>Confirmar Estorno
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let contaIdEstorno = null;
+
+function abrirModalEstorno(contaId, descricao, cliente) {
+    contaIdEstorno = contaId;
+    document.getElementById('estornoDescricao').textContent = descricao;
+    document.getElementById('estornoCliente').textContent = 'Cliente: ' + cliente;
+    document.getElementById('formEstorno').action = `/contas-receber/estornar/${contaId}`;
+    document.getElementById('modalEstorno').classList.remove('hidden');
+}
+
+function fecharModalEstorno() {
+    document.getElementById('modalEstorno').classList.add('hidden');
+    contaIdEstorno = null;
+}
+
+// Fechar modal ao clicar fora dele
+document.getElementById('modalEstorno').addEventListener('click', function(e) {
+    if (e.target === this) {
+        fecharModalEstorno();
+    }
+});
+</script>
+{% endblock %}

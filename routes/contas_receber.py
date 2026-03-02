@@ -47,6 +47,7 @@ def lista():
     # Filtros
     cliente_id = request.args.get('cliente_id', type=int)
     filial_id = request.args.get('filial_id', type=int)
+    centro_custo_id = request.args.get('centro_custo_id', type=int)
     status = request.args.get('status')
     data_inicio = request.args.get('data_inicio')
     data_fim = request.args.get('data_fim')
@@ -59,6 +60,7 @@ def lista():
     contas = ContaReceberModel.get_all(
         cliente_id=cliente_id,
         filial_id=filial_id,
+        centro_custo_id=centro_custo_id,
         status=status,
         data_inicio=data_inicio_obj,
         data_fim=data_fim_obj
@@ -67,6 +69,7 @@ def lista():
     # Buscar dados para filtros
     clientes = ClienteModel.get_all()
     filiais = FilialModel.get_all()
+    centros_custos = CentroCustoModel.get_all()
     
     # Calcular totalizadores
     totalizadores = ContaReceberModel.get_totalizadores()
@@ -75,10 +78,12 @@ def lista():
                          contas=contas,
                          clientes=clientes,
                          filiais=filiais,
+                         centros_custos=centros_custos,
                          totalizadores=totalizadores,
                          filtros={
                              'cliente_id': cliente_id,
                              'filial_id': filial_id,
+                             'centro_custo_id': centro_custo_id,
                              'status': status,
                              'data_inicio': data_inicio,
                              'data_fim': data_fim
@@ -91,6 +96,13 @@ def nova():
     if request.method == 'POST':
         try:
             # Coletar dados do formulário
+            data_emissao = datetime.strptime(request.form['data_emissao'], '%Y-%m-%d').date()
+            prazo_dias = int(request.form.get('prazo_dias', 30))
+            
+            # Calcular data de vencimento baseada no prazo
+            from datetime import timedelta
+            data_vencimento = data_emissao + timedelta(days=prazo_dias)
+            
             dados = {
                 'cliente_id': int(request.form['cliente_id']),
                 'cliente_produto_id': int(request.form['cliente_produto_id']) if request.form.get('cliente_produto_id') else None,
@@ -101,8 +113,9 @@ def nova():
                 'descricao': request.form['descricao'],
                 'numero_documento': request.form.get('numero_documento'),
                 'valor_total': converter_valor_brasileiro(request.form['valor_total']),
-                'data_emissao': datetime.strptime(request.form['data_emissao'], '%Y-%m-%d').date(),
-                'data_vencimento': datetime.strptime(request.form['data_vencimento'], '%Y-%m-%d').date(),
+                'data_emissao': data_emissao,
+                'prazo_dias': prazo_dias,
+                'data_vencimento': data_vencimento,
                 'numero_parcelas': int(request.form.get('numero_parcelas', 1)),
                 'intervalo_parcelas': int(request.form.get('intervalo_parcelas', 30)),
                 'percentual_juros': Decimal(request.form.get('percentual_juros', 0)),
@@ -397,3 +410,236 @@ def api_produtos_cliente(cliente_id):
     if cliente and cliente.get('produtos'):
         return jsonify({'produtos': cliente['produtos']})
     return jsonify({'produtos': []})
+
+@contas_receber_bp.route('/editar/<int:conta_id>', methods=['GET', 'POST'])
+@login_required
+def editar(conta_id):
+    """Edita uma conta a receber existente"""
+    conta = ContaReceberModel.get_by_id(conta_id)
+    
+    if not conta:
+        flash('Conta não encontrada', 'error')
+        return redirect(url_for('contas_receber.lista'))
+    
+    if conta['status'] == 'recebido':
+        flash('Não é possível editar uma conta já recebida', 'error')
+        return redirect(url_for('contas_receber.lista'))
+    
+    if request.method == 'POST':
+        try:
+            # Calcular data de vencimento baseada no prazo
+            from datetime import timedelta
+            data_emissao = datetime.strptime(request.form['data_emissao'], '%Y-%m-%d').date()
+            prazo_dias = int(request.form.get('prazo_dias', 30))
+            data_vencimento = data_emissao + timedelta(days=prazo_dias)
+            
+            dados = {
+                'cliente_id': int(request.form['cliente_id']),
+                'tipo_servico_id': int(request.form['tipo_servico_id']) if request.form.get('tipo_servico_id') else None,
+                'centro_custo_id': int(request.form['centro_custo_id']) if request.form.get('centro_custo_id') else None,
+                'conta_contabil_id': int(request.form['conta_contabil_id']) if request.form.get('conta_contabil_id') else None,
+                'filial_id': int(request.form['filial_id']) if request.form.get('filial_id') else None,
+                'descricao': request.form['descricao'],
+                'numero_documento': request.form.get('numero_documento'),
+                'observacoes': request.form.get('observacoes'),
+                'valor_total': converter_valor_brasileiro(request.form['valor_total']),
+                'data_emissao': data_emissao,
+                'prazo_dias': prazo_dias,
+                'data_vencimento': data_vencimento,
+                'referencia': request.form.get('referencia'),
+                'percentual_juros': float(request.form.get('percentual_juros', 0)),
+                'percentual_multa': float(request.form.get('percentual_multa', 0))
+            }
+            
+            resultado = ContaReceberModel.update(conta_id, dados)
+            
+            if resultado['success']:
+                # Auditoria
+                auditar_agora('contas_receber', conta_id, 'update')
+                flash('Conta atualizada com sucesso!', 'success')
+                return redirect(url_for('contas_receber.lista'))
+            else:
+                flash(resultado['message'], 'error')
+        
+        except Exception as e:
+            flash(f'Erro ao atualizar conta: {str(e)}', 'error')
+    
+    # GET - Buscar dados para os selects
+    clientes = ClienteModel.get_all()
+    tipos_servicos = TipoServicoModel.get_all()
+    centros_custos = CentroCustoModel.get_all()
+    plano_contas = PlanoContaModel.get_analiticas(tipo='receita')
+    filiais = FilialModel.get_all()
+    
+    return render_template('contas_receber/form.html', 
+                         conta=conta,
+                         clientes=clientes,
+                         tipos_servicos=tipos_servicos,
+                         centros_custos=centros_custos,
+                         contas_analiticas=plano_contas,
+                         filiais=filiais)
+
+@contas_receber_bp.route('/deletar/<int:conta_id>', methods=['POST'])
+@login_required
+def deletar(conta_id):
+    """Exclui (soft delete) uma conta a receber"""
+    resultado = ContaReceberModel.delete(conta_id)
+    
+    if resultado['success']:
+        # Auditoria
+        auditar_agora('contas_receber', conta_id, 'delete')
+    
+    return jsonify(resultado)
+
+@contas_receber_bp.route('/baixas')
+@login_required
+def baixas():
+    """Lista todas as baixas (recebimentos) realizadas"""
+    # Filtros
+    data_inicio = request.args.get('data_inicio')
+    data_fim = request.args.get('data_fim')
+    cliente_id = request.args.get('cliente_id', type=int)
+    
+    # Buscar baixas
+    baixas_list = ContaReceberModel.get_baixas(
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        cliente_id=cliente_id
+    )
+    
+    # Buscar clientes para filtro
+    clientes = ClienteModel.get_all()
+    
+    # Calcular total
+    total_recebido = sum(b['valor_pago'] for b in baixas_list if b['valor_pago'])
+    
+    return render_template('contas_receber/baixas.html',
+                         baixas=baixas_list,
+                         clientes=clientes,
+                         total_recebido=total_recebido,
+                         filtros={
+                             'data_inicio': data_inicio,
+                             'data_fim': data_fim,
+                             'cliente_id': cliente_id
+                         })
+
+@contas_receber_bp.route('/estornar/<int:conta_id>', methods=['POST'])
+@login_required
+def estornar(conta_id):
+    """Estorna um recebimento realizado"""
+    motivo = request.form.get('motivo', 'Sem motivo informado')
+    
+    resultado = ContaReceberModel.estornar_recebimento(conta_id, motivo)
+    
+    if resultado['success']:
+        # Auditoria
+        auditar_agora('contas_receber', conta_id, 'estorno', dados={'motivo': motivo})
+        flash(resultado['message'], 'success')
+    else:
+        flash(resultado['message'], 'error')
+    
+    return redirect(url_for('contas_receber.baixas'))
+
+@contas_receber_bp.route('/baixas-do-dia')
+@login_required
+def baixas_do_dia():
+    """Relatório de recebimentos do dia atual"""
+    from datetime import date
+    
+    hoje = date.today()
+    
+    # Buscar baixas do dia
+    baixas_list = ContaReceberModel.get_baixas(
+        data_inicio=hoje,
+        data_fim=hoje
+    )
+    
+    # Calcular total
+    total_recebido = sum(b['valor_pago'] for b in baixas_list if b['valor_pago'])
+    
+    return render_template('contas_receber/baixas_dia.html',
+                         baixas=baixas_list,
+                         total_recebido=total_recebido,
+                         data=hoje)
+
+
+@contas_receber_bp.route('/exportar/pdf')
+@login_required
+def exportar_pdf():
+    """Exporta relatório para PDF"""
+    from flask import send_file
+    from services.exportacao import ExportacaoService
+    
+    # Obter filtros da requisição
+    filtros = {
+        'status': request.args.get('status'),
+        'cliente_id': request.args.get('cliente_id'),
+        'filial_id': request.args.get('filial_id'),
+        'centro_custo_id': request.args.get('centro_custo_id'),
+        'data_inicio': request.args.get('data_inicio'),
+        'data_fim': request.args.get('data_fim'),
+    }
+    
+    # Buscar contas com filtros aplicados
+    contas = ContaReceberModel.get_all(
+        status=filtros.get('status'),
+        cliente_id=int(filtros['cliente_id']) if filtros.get('cliente_id') else None,
+        filial_id=int(filtros['filial_id']) if filtros.get('filial_id') else None,
+        centro_custo_id=int(filtros['centro_custo_id']) if filtros.get('centro_custo_id') else None,
+        data_inicio=filtros.get('data_inicio'),
+        data_fim=filtros.get('data_fim')
+    )
+    
+    # Gerar PDF
+    pdf_buffer = ExportacaoService.exportar_contas_receber_pdf(contas, filtros)
+    
+    # Nome do arquivo
+    filename = f"contas_receber_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    
+    return send_file(
+        pdf_buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=filename
+    )
+
+
+@contas_receber_bp.route('/exportar/excel')
+@login_required
+def exportar_excel():
+    """Exporta relatório para Excel"""
+    from flask import send_file
+    from services.exportacao import ExportacaoService
+    
+    # Obter filtros da requisição
+    filtros = {
+        'status': request.args.get('status'),
+        'cliente_id': request.args.get('cliente_id'),
+        'filial_id': request.args.get('filial_id'),
+        'centro_custo_id': request.args.get('centro_custo_id'),
+        'data_inicio': request.args.get('data_inicio'),
+        'data_fim': request.args.get('data_fim'),
+    }
+    
+    # Buscar contas com filtros aplicados
+    contas = ContaReceberModel.get_all(
+        status=filtros.get('status'),
+        cliente_id=int(filtros['cliente_id']) if filtros.get('cliente_id') else None,
+        filial_id=int(filtros['filial_id']) if filtros.get('filial_id') else None,
+        centro_custo_id=int(filtros['centro_custo_id']) if filtros.get('centro_custo_id') else None,
+        data_inicio=filtros.get('data_inicio'),
+        data_fim=filtros.get('data_fim')
+    )
+    
+    # Gerar Excel
+    excel_buffer = ExportacaoService.exportar_contas_receber_excel(contas, filtros)
+    
+    # Nome do arquivo
+    filename = f"contas_receber_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    return send_file(
+        excel_buffer,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )

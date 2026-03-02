@@ -94,6 +94,12 @@
                                     <a href="{{ url_for('tipos_servicos.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-list-alt mr-2 w-4"></i>Tipos de Serviços
                                     </a>
+                                    <a href="{{ url_for('plano_contas.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-chart-line mr-2 w-4"></i>Plano de Contas
+                                    </a>
+                                    <a href="{{ url_for('centro_custos.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
+                                        <i class="fas fa-sitemap mr-2 w-4"></i>Centros de Custo
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -135,15 +141,20 @@
                                     <a href="{{ url_for('margem.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-percent mr-2 w-4"></i>Margem Operacional
                                     </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dropdown RH -->
+                        <div class="relative group" id="dropdown-rh">
+                            <button class="text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-meetcall-purple-dark transition flex items-center">
+                                <i class="fas fa-user-tie mr-2"></i>RH
+                                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                            </button>
+                            <div class="dropdown-menu absolute left-0 mt-2 w-56 bg-white rounded-md shadow-lg hidden z-50">
+                                <div class="py-1">
                                     <a href="{{ url_for('capacity.index') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
                                         <i class="fas fa-users mr-2 w-4"></i>Capacity
-                                    </a>
-                                    <div class="border-t border-gray-100 my-1"></div>
-                                    <a href="{{ url_for('plano_contas.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
-                                        <i class="fas fa-chart-line mr-2 w-4"></i>Plano de Contas
-                                    </a>
-                                    <a href="{{ url_for('centro_custos.lista') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-purple-50 hover:text-meetcall-purple">
-                                        <i class="fas fa-sitemap mr-2 w-4"></i>Centros de Custo
                                     </a>
                                 </div>
                             </div>
@@ -212,6 +223,20 @@
                     <a href="{{ url_for('tipos_servicos.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-list-alt mr-2 ml-2"></i>Tipos de Serviços
                     </a>
+                    <a href="{{ url_for('plano_contas.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-chart-line mr-2 ml-2"></i>Plano de Contas
+                    </a>
+                    <a href="{{ url_for('centro_custos.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-sitemap mr-2 ml-2"></i>Centros de Custo
+                    </a>
+                </div>
+                
+                <!-- Seção RH -->
+                <div class="border-t border-purple-400 pt-2 mt-2">
+                    <div class="text-purple-200 text-xs uppercase px-3 py-1 font-semibold">RH</div>
+                    <a href="{{ url_for('capacity.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
+                        <i class="fas fa-users mr-2 ml-2"></i>Capacity
+                    </a>
                 </div>
                 
                 <!-- Seção Financeiro -->
@@ -232,9 +257,6 @@
                     <a href="{{ url_for('margem.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-percent mr-2 ml-2"></i>Margem Operacional
                     </a>
-                    <a href="{{ url_for('capacity.index') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
-                        <i class="fas fa-users mr-2 ml-2"></i>Capacity
-                    </a>
                     <a href="{{ url_for('contas_pagar.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-file-invoice-dollar mr-2 ml-2"></i>Contas a Pagar
                     </a>
@@ -246,12 +268,6 @@
                     </a>
                     <a href="{{ url_for('contas_bancarias.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
                         <i class="fas fa-university mr-2 ml-2"></i>Contas Bancárias
-                    </a>
-                    <a href="{{ url_for('plano_contas.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
-                        <i class="fas fa-chart-line mr-2 ml-2"></i>Plano de Contas
-                    </a>
-                    <a href="{{ url_for('centro_custos.lista') }}" class="text-white block px-3 py-2 rounded-md text-sm hover:bg-meetcall-purple-dark">
-                        <i class="fas fa-sitemap mr-2 ml-2"></i>Centros de Custo
                     </a>
                 </div>
                 

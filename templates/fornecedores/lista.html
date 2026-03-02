@@ -6,10 +6,20 @@
 <div class="bg-white rounded-lg shadow-md p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-900">Fornecedores</h1>
-        <a href="{{ url_for('fornecedores.novo') }}" class="bg-meetcall-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
-            <i class="fas fa-plus mr-2"></i>
-            Novo Fornecedor
-        </a>
+        <div class="flex gap-2">
+            <a href="{{ url_for('fornecedores.exportar_pdf') }}" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
+                <i class="fas fa-file-pdf mr-2"></i>
+                Exportar PDF
+            </a>
+            <a href="{{ url_for('fornecedores.exportar_excel') }}" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
+                <i class="fas fa-file-excel mr-2"></i>
+                Exportar Excel
+            </a>
+            <a href="{{ url_for('fornecedores.novo') }}" class="bg-meetcall-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition duration-300 flex items-center">
+                <i class="fas fa-plus mr-2"></i>
+                Novo Fornecedor
+            </a>
+        </div>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -30,6 +40,7 @@
                     <th class="px-4 py-2 text-left">Tipo</th>
                     <th class="px-4 py-2 text-left">Nome/Razão Social</th>
                     <th class="px-4 py-2 text-left">CNPJ/CPF</th>
+                    <th class="px-4 py-2 text-left">Categoria Padrão</th>
                     <th class="px-4 py-2 text-left">Telefone</th>
                     <th class="px-4 py-2 text-left">Email</th>
                     <th class="px-4 py-2 text-left">Status</th>
@@ -54,6 +65,15 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-2">{{ f.cnpj }}</td>
+                    <td class="px-4 py-2">
+                        {% if f.tipo_servico_nome %}
+                            <span class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
+                                {{ f.tipo_servico_nome }}
+                            </span>
+                        {% else %}
+                            <span class="text-xs text-gray-400">Não definido</span>
+                        {% endif %}
+                    </td>
                     <td class="px-4 py-2">{{ f.telefone or '-' }}</td>
                     <td class="px-4 py-2">{{ f.email or '-' }}</td>
                     <td class="px-4 py-2">

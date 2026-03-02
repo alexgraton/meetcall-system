@@ -44,11 +44,11 @@ class ContaReceberModel:
                 query = """
                     INSERT INTO contas_receber 
                     (cliente_id, filial_id, tipo_servico_id, centro_custo_id, conta_contabil_id,
-                     descricao, numero_documento, valor_total, data_emissao, data_vencimento,
+                     descricao, numero_documento, valor_total, data_emissao, prazo_dias, data_vencimento,
                      numero_parcelas, parcela_atual, intervalo_parcelas,
                      percentual_juros, percentual_multa, is_recorrente, recorrencia_tipo,
                      observacoes, created_by)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 
                 cursor.execute(query, (
@@ -61,6 +61,7 @@ class ContaReceberModel:
                     dados.get('numero_documento'),
                     dados['valor_total'],
                     dados['data_emissao'],
+                    dados.get('prazo_dias', 30),
                     dados['data_vencimento'],
                     1,
                     1,
@@ -138,6 +139,7 @@ class ContaReceberModel:
     @staticmethod
     def get_all(cliente_id: Optional[int] = None, 
                 filial_id: Optional[int] = None,
+                centro_custo_id: Optional[int] = None,
                 status: Optional[str] = None,
                 data_inicio: Optional[date] = None,
                 data_fim: Optional[date] = None) -> List[Dict]:
@@ -168,6 +170,10 @@ class ContaReceberModel:
             if cliente_id:
                 query += " AND cr.cliente_id = %s"
                 params.append(cliente_id)
+            
+            if centro_custo_id:
+                query += " AND cr.centro_custo_id = %s"
+                params.append(centro_custo_id)
             
             if filial_id:
                 query += " AND cr.filial_id = %s"
@@ -293,6 +299,110 @@ class ContaReceberModel:
             return cursor.rowcount > 0
     
     @staticmethod
+    def update(conta_id: int, dados: Dict) -> Dict:
+        """
+        Atualiza uma conta a receber existente
+        
+        Args:
+            conta_id: ID da conta a receber
+            dados: Dicionário com os novos dados
+        
+        Returns:
+            Dict com 'success' e 'message'
+        """
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Verificar se a conta existe
+            cursor.execute("SELECT status FROM contas_receber WHERE id = %s", (conta_id,))
+            conta = cursor.fetchone()
+            
+            if not conta:
+                return {'success': False, 'message': 'Conta não encontrada'}
+            
+            # Não permitir editar conta já recebida
+            if conta['status'] == 'recebido':
+                return {'success': False, 'message': 'Não é possível editar uma conta já recebida'}
+            
+            # Atualizar a conta
+            query = """
+                UPDATE contas_receber SET
+                    cliente_id = %s,
+                    tipo_servico_id = %s,
+                    centro_custo_id = %s,
+                    conta_contabil_id = %s,
+                    filial_id = %s,
+                    descricao = %s,
+                    numero_documento = %s,
+                    observacoes = %s,
+                    valor_total = %s,
+                    data_emissao = %s,
+                    prazo_dias = %s,
+                    data_vencimento = %s,
+                    referencia = %s,
+                    percentual_juros = %s,
+                    percentual_multa = %s,
+                    updated_at = NOW()
+                WHERE id = %s
+            """
+            
+            cursor.execute(query, (
+                dados['cliente_id'],
+                dados.get('tipo_servico_id'),
+                dados.get('centro_custo_id'),
+                dados.get('conta_contabil_id'),
+                dados.get('filial_id'),
+                dados['descricao'],
+                dados.get('numero_documento'),
+                dados.get('observacoes'),
+                dados['valor_total'],
+                dados['data_emissao'],
+                dados.get('prazo_dias', 30),
+                dados['data_vencimento'],
+                dados.get('referencia'),
+                dados.get('percentual_juros', 0),
+                dados.get('percentual_multa', 0),
+                conta_id
+            ))
+            
+            conn.commit()
+            return {'success': True, 'message': 'Conta atualizada com sucesso'}
+    
+    @staticmethod
+    def delete(conta_id: int) -> Dict:
+        """
+        Exclui (soft delete) uma conta a receber
+        
+        Args:
+            conta_id: ID da conta a receber
+        
+        Returns:
+            Dict com 'success' e 'message'
+        """
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            # Verificar se a conta existe
+            cursor.execute("SELECT status FROM contas_receber WHERE id = %s", (conta_id,))
+            conta = cursor.fetchone()
+            
+            if not conta:
+                return {'success': False, 'message': 'Conta não encontrada'}
+            
+            # Não permitir excluir conta já recebida
+            if conta['status'] == 'recebido':
+                return {'success': False, 'message': 'Não é possível excluir uma conta já recebida'}
+            
+            # Soft delete - marca como cancelada
+            query = "UPDATE contas_receber SET status = 'cancelado', updated_at = NOW() WHERE id = %s"
+            cursor.execute(query, (conta_id,))
+            conn.commit()
+            
+            return {'success': True, 'message': 'Conta excluída com sucesso'}
+    
+    @staticmethod
     def get_totalizadores() -> Dict:
         """Retorna valores totalizados por status"""
         db = DatabaseManager()
@@ -320,3 +430,79 @@ class ContaReceberModel:
             
             cursor.execute(query)
             return cursor.fetchone()
+
+    @staticmethod
+    def get_baixas(data_inicio=None, data_fim=None, cliente_id=None):
+        """Busca todas as baixas (recebimentos) realizadas"""
+        db = DatabaseManager()
+        with db.get_connection() as conn:
+            cursor = conn.cursor(dictionary=True)
+            
+            query = """
+                SELECT 
+                    cr.*,
+                    c.razao_social as cliente_nome,
+                    c.nome as cliente_fantasia,
+                    ts.nome as tipo_servico_nome,
+                    fil.nome as filial_nome
+                FROM contas_receber cr
+                LEFT JOIN clientes c ON cr.cliente_id = c.id
+                LEFT JOIN tipos_servicos ts ON cr.tipo_servico_id = ts.id
+                LEFT JOIN filiais fil ON cr.filial_id = fil.id
+                WHERE cr.status = 'recebido'
+            """
+            
+            params = []
+            if data_inicio:
+                query += " AND cr.data_recebimento >= %s"
+                params.append(data_inicio)
+            if data_fim:
+                query += " AND cr.data_recebimento <= %s"
+                params.append(data_fim)
+            if cliente_id:
+                query += " AND cr.cliente_id = %s"
+                params.append(cliente_id)
+            
+            query += " ORDER BY cr.data_recebimento DESC, cr.id DESC"
+            
+            cursor.execute(query, tuple(params))
+            return cursor.fetchall()
+
+    @staticmethod
+    def estornar_recebimento(conta_id: int, motivo: str) -> Dict:
+        """Estorna um recebimento realizado"""
+        try:
+            db = DatabaseManager()
+            with db.get_connection() as conn:
+                cursor = conn.cursor(dictionary=True)
+                
+                # Verificar se a conta existe e está recebida
+                cursor.execute("SELECT status, valor_pago FROM contas_receber WHERE id = %s", (conta_id,))
+                conta = cursor.fetchone()
+                
+                if not conta:
+                    return {'success': False, 'message': 'Conta não encontrada'}
+                
+                if conta['status'] != 'recebido':
+                    return {'success': False, 'message': 'Esta conta não está recebida. Apenas contas recebidas podem ser estornadas.'}
+                
+                # Estornar - voltar ao status pendente e limpar dados de recebimento
+                query = """
+                    UPDATE contas_receber
+                    SET status = 'pendente',
+                        data_recebimento = NULL,
+                        valor_pago = NULL,
+                        valor_juros = NULL,
+                        valor_multa = NULL,
+                        valor_desconto = NULL,
+                        observacoes = CONCAT(COALESCE(observacoes, ''), '\n[ESTORNO] ', %s, ' - ', NOW())
+                    WHERE id = %s
+                """
+                
+                cursor.execute(query, (motivo, conta_id))
+                conn.commit()
+                
+                return {'success': True, 'message': 'Recebimento estornado com sucesso'}
+                
+        except Exception as e:
+            return {'success': False, 'message': f'Erro ao estornar recebimento: {str(e)}'}
